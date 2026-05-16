@@ -309,7 +309,7 @@ _MODEL_LABELS: dict[str, str] = {
 }
 st.sidebar.markdown(
     '<p style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;'
-    'color:#9CA3AF;text-transform:uppercase;margin:1.2rem 0 0.3rem 0;">MODEL</p>',
+    'color:#b7b1c6;text-transform:uppercase;margin:1.2rem 0 0.3rem 0;">MODEL</p>',
     unsafe_allow_html=True,
 )
 selected_model_key: str = st.sidebar.selectbox(  # type: ignore[assignment]

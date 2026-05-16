@@ -57,12 +57,12 @@ except ImportError:
 # Score-to-color mapping
 def _color_for(score: float) -> str:
     if score >= 0.75:
-        return "#C4563A"  # brand accent terracotta
+        return "#c8553d"  # brand accent terracotta
     if score >= 0.55:
         return "#FBBF24"  # warm amber
     if score >= 0.40:
         return "#4ADE80"  # green
-    return "#9CA3AF"      # muted
+    return "#b7b1c6"      # muted
 
 
 m = folium.Map(
@@ -76,7 +76,7 @@ m = folium.Map(
 folium.Circle(
     location=[lat, lon],
     radius=radius_km * 1000.0,
-    color="#C4563A",
+    color="#c8553d",
     weight=2,
     fill=True,
     fill_opacity=0.05,
@@ -103,11 +103,11 @@ for rank, (_, row) in enumerate(recs.iterrows(), 1):
     dist = row.get("distance_km")
     dist_str = f"{dist:.1f} km" if pd.notna(dist) else "—"
     popup_html = f"""
-        <div style='font-family:"Cormorant Garamond",Georgia,serif;min-width:200px;color:#1C2438;'>
+        <div style='font-family:"Cormorant Garamond",Georgia,serif;min-width:200px;color:#0f1f3d;'>
           <div style='font-weight:600;font-size:1.1rem;'>#{rank} · {row['name']}</div>
-          <div style='color:#6B7280;font-size:0.88rem;margin-top:3px;'>{cats}</div>
-          <div style='margin-top:7px;font-size:0.92rem;color:#C4563A;font-weight:500;'>★ {stars}</div>
-          <div style='color:#9CA3AF;font-size:0.82rem;margin-top:2px;'>{dist_str} · score {score:.2f}</div>
+          <div style='color:#8e8aa6;font-size:0.88rem;margin-top:3px;'>{cats}</div>
+          <div style='margin-top:7px;font-size:0.92rem;color:#c8553d;font-weight:500;'>★ {stars}</div>
+          <div style='color:#b7b1c6;font-size:0.82rem;margin-top:2px;'>{dist_str} · score {score:.2f}</div>
         </div>
     """
     folium.CircleMarker(
@@ -139,11 +139,11 @@ st.markdown(
     """
     <div style='display:flex;gap:1.2rem;margin-top:0.9rem;flex-wrap:wrap;
                 font-family:"Cormorant Garamond",Georgia,serif;font-size:0.88rem;
-                color:#6B7280;letter-spacing:0.01em;'>
-      <span><span style='display:inline-block;width:13px;height:13px;border-radius:50%;background:#C4563A;margin-right:5px;vertical-align:middle;'></span>Top pick (≥ 0.75)</span>
+                color:#8e8aa6;letter-spacing:0.01em;'>
+      <span><span style='display:inline-block;width:13px;height:13px;border-radius:50%;background:#c8553d;margin-right:5px;vertical-align:middle;'></span>Top pick (≥ 0.75)</span>
       <span><span style='display:inline-block;width:13px;height:13px;border-radius:50%;background:#FBBF24;margin-right:5px;vertical-align:middle;'></span>Strong (0.55–0.75)</span>
       <span><span style='display:inline-block;width:13px;height:13px;border-radius:50%;background:#4ADE80;margin-right:5px;vertical-align:middle;'></span>Solid (0.40–0.55)</span>
-      <span><span style='display:inline-block;width:13px;height:13px;border-radius:50%;background:#9CA3AF;margin-right:5px;vertical-align:middle;'></span>Other</span>
+      <span><span style='display:inline-block;width:13px;height:13px;border-radius:50%;background:#b7b1c6;margin-right:5px;vertical-align:middle;'></span>Other</span>
     </div>
     """,
     unsafe_allow_html=True,

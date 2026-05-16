@@ -404,7 +404,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .nav-card:hover {
     box-shadow: var(--shadow-hover);
-    border-color: rgba(196,86,58,0.35);
+    border-color: rgba(200,85,61,0.35);
     transform: translateY(-4px);
 }
 
@@ -558,7 +558,7 @@ h1, h2, h3, h4, h5, h6 {
 .tag-accent {
     background: var(--accent-soft);
     color: var(--accent);
-    border: 1px solid rgba(196,86,58,0.22);
+    border: 1px solid rgba(200,85,61,0.22);
 }
 
 .tag-success {
@@ -615,7 +615,7 @@ h1, h2, h3, h4, h5, h6 {
 .stButton > button:hover {
     background: var(--accent-mid) !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 18px rgba(196,86,58,0.25);
+    box-shadow: 0 4px 18px rgba(200,85,61,0.25);
 }
 
 .stButton > button[kind="secondary"] {
@@ -1035,7 +1035,7 @@ a.sidebar-ws-item {
     position: absolute;
     top: 0.9rem;
     right: 0.9rem;
-    background: #1C2438;
+    background: #0f1f3d;
     color: #fff;
     font-size: 0.54rem;
     font-weight: 700;
@@ -1084,6 +1084,16 @@ a.sidebar-ws-item {
     margin: 0.2rem 0 0 0;
     font-family: "Cormorant Garamond", serif;
     font-weight: 500;
+}
+
+/* ---------- Top header bar ---------- */
+[data-testid="stHeader"] {
+    background: var(--bg-primary) !important;
+    border-bottom: 1px solid var(--border);
+    box-shadow: none !important;
+}
+[data-testid="stHeader"] * {
+    color: var(--text-secondary) !important;
 }
 
 /* Hide Streamlit branding */
