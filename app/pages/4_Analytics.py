@@ -68,8 +68,8 @@ _MODEL_LABELS = {
     "hybrid":        "Hybrid",
 }
 # Plotly theme colours matching app palette
-_ACCENT   = "#C4563A"
-_PALETTE  = ["#C4563A", "#1C2438", "#6B7280", "#A8422A", "#9CA3AF", "#3B4A6B"]
+_ACCENT   = "#c8553d"
+_PALETTE  = ["#c8553d", "#0f1f3d", "#8e8aa6", "#a8422a", "#b7b1c6", "#2a3856"]
 
 eval_path = MODELS_DIR / "evaluation_results.csv"
 st.markdown("### Model comparison")

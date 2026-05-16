@@ -19,24 +19,24 @@ h1, h2, h3, h4, h5, h6, p, span, div, label, button, input, select, textarea {
 
 /* ---------- Base ---------- */
 :root {
-    --bg-primary:    #EDE4D9;
-    --bg-secondary:  #E5DDD3;
-    --bg-card:       #FFFFFF;
-    --bg-card-hover: #FAFAF8;
-    --accent:        #C4563A;
-    --accent-mid:    #A8422A;
-    --accent-soft:   #C4563A12;
+    --bg-primary:    #f6efe4;
+    --bg-secondary:  #f0e8db;
+    --bg-card:       #ffffff;
+    --bg-card-hover: #fbf7ef;
+    --accent:        #c8553d;
+    --accent-mid:    #a8422a;
+    --accent-soft:   #c8553d12;
     --success:       #155E42;
     --warning:       #78350F;
     --danger:        #7F1D1D;
-    --text-primary:  #1C2438;
-    --text-secondary:#6B7280;
-    --text-muted:    #9CA3AF;
-    --border:        #E8E3DC;
+    --text-primary:  #0f1f3d;
+    --text-secondary:#8e8aa6;
+    --text-muted:    #b7b1c6;
+    --border:        #e8e0d0;
     --radius:        16px;
-    --shadow-sm:     0 1px 4px rgba(0,0,0,0.06);
-    --shadow-card:   0 4px 28px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
-    --shadow-hover:  0 10px 40px rgba(28,36,56,0.11), 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-sm:     0 1px 2px rgba(15,31,61,.04), 0 4px 12px rgba(15,31,61,.06);
+    --shadow-card:   0 1px 2px rgba(15,31,61,.04), 0 12px 32px rgba(15,31,61,.06);
+    --shadow-hover:  0 1px 2px rgba(15,31,61,.04), 0 20px 40px rgba(15,31,61,.08);
 }
 
 /* ---------- App shell ---------- */
