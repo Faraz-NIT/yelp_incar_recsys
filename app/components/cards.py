@@ -83,28 +83,28 @@ def render_card(
 
     score_pct = int(round(float(row.get("score", 0)) * 100))
 
-    if photo_b64:
-        photo_html = (
-            f'<div class="rec-card-photo">'
-            f'<img src="data:image/jpeg;base64,{photo_b64}" alt="{name}" />'
-            f'</div>'
-        )
-    else:
-        photo_html = '<div class="rec-card-photo-placeholder">🍽️</div>'
+    photo_html = (
+        f'<div class="rec-card-photo">'
+        f'<img src="data:image/jpeg;base64,{photo_b64}" alt="{name}" />'
+        f'</div>'
+        if photo_b64 else ""
+    )
 
     st.markdown(
         f"""
         <div class="rec-card">
-            {photo_html}
-            <div class="rec-card-rank">#{rank}</div>
-            <div class="rec-card-name">{name}</div>
-            <div class="rec-card-meta">{meta_str}
-                &nbsp;·&nbsp;
-                <span class="tag tag-accent">Match {score_pct}%</span>
+            <div class="rec-card-body">
+                <div class="rec-card-rank">#{rank}</div>
+                <div class="rec-card-name">{name}</div>
+                <div class="rec-card-meta">{meta_str}
+                    &nbsp;·&nbsp;
+                    <span class="tag tag-accent">Match {score_pct}%</span>
+                </div>
+                {address_html}
+                <div>{tags_html}</div>
+                {why_html}
             </div>
-            {address_html}
-            <div>{tags_html}</div>
-            {why_html}
+            {photo_html}
         </div>
         """,
         unsafe_allow_html=True,

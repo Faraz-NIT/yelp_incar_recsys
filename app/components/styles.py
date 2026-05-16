@@ -455,20 +455,29 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 1.1rem 1.3rem;
+    padding: 0;
     margin-bottom: 0.9rem;
     box-shadow: var(--shadow-card);
     transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.rec-card-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 1.1rem 1.3rem;
+    position: relative;
 }
 
 .rec-card-photo {
-    margin: -1.1rem -1.3rem 1rem;
-    height: 170px;
+    flex: 0 0 220px;
+    width: 220px;
     overflow: hidden;
-    border-radius: var(--radius) var(--radius) 0 0;
-    position: relative;
+    border-radius: 0 var(--radius) var(--radius) 0;
 }
 .rec-card-photo img {
     width: 100%;
@@ -476,17 +485,6 @@ h1, h2, h3, h4, h5, h6 {
     object-fit: cover;
     object-position: center;
     display: block;
-}
-.rec-card-photo-placeholder {
-    margin: -1.1rem -1.3rem 1rem;
-    height: 100px;
-    background: linear-gradient(135deg, var(--accent-soft) 0%, var(--bg-secondary) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.2rem;
-    border-radius: var(--radius) var(--radius) 0 0;
-    opacity: 0.7;
 }
 
 .rec-card:hover {

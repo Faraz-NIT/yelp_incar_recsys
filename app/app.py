@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 
 import streamlit as st  # noqa: E402
 
+from app.components.carousel import _load_city_photos, render_carousel  # noqa: E402
 from app.components.styles import (  # noqa: E402
     inject_css,
     page_header,
@@ -23,7 +24,11 @@ from app.components.styles import (  # noqa: E402
     sidebar_logo,
     status_banner,
 )
+from src.config import DEFAULT_CONFIG, RAW_DIR  # noqa: E402
+from src.geo import CITY_CENTROIDS  # noqa: E402
 from src.pipeline import has_processed_data, has_trained_models, load_metadata  # noqa: E402
+from src.preprocessing import load_processed  # noqa: E402
+from src.utils import load_business_photos  # noqa: E402
 
 
 st.set_page_config(
@@ -35,7 +40,51 @@ st.set_page_config(
 
 inject_css()
 sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
+
+# ---------------------------------------------------------------------------
+# Sidebar city selector
+# ---------------------------------------------------------------------------
+_all_cities = sorted(CITY_CENTROIDS.keys())
+_default_city = DEFAULT_CONFIG.cities[0] if DEFAULT_CONFIG.cities else _all_cities[0]
+_default_idx = _all_cities.index(_default_city) if _default_city in _all_cities else 0
+
+st.sidebar.markdown(
+    '<p style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;'
+    'color:#9CA3AF;text-transform:uppercase;margin:1.2rem 0 0.4rem 0.5rem;">EXPLORE CITY</p>',
+    unsafe_allow_html=True,
+)
+selected_city: str | None = st.sidebar.selectbox(
+    "City",
+    options=_all_cities,
+    index=None,
+    placeholder="Select a city…",
+    label_visibility="collapsed",
+    key="home_city",
+)
+
 sidebar_extras()
+
+# ---------------------------------------------------------------------------
+# Photo loader (cached per city)
+# ---------------------------------------------------------------------------
+@st.cache_data(show_spinner=False)
+def _city_photos(city: str, max_n: int = 10) -> list[dict]:
+    photo_map = load_business_photos(RAW_DIR)
+    photos_dir = RAW_DIR / "photos"
+    data = load_processed()
+    if not data or "businesses" not in data:
+        return []
+    businesses = data["businesses"]
+    if "city" not in businesses.columns:
+        return []
+    cols = [c for c in ["business_id", "name", "stars", "categories"] if c in businesses.columns]
+    city_biz = (
+        businesses[businesses["city"] == city][cols]
+        .sample(frac=1, random_state=42)  # shuffle for variety
+        .to_dict("records")
+    )
+    return _load_city_photos(photo_map, photos_dir, city_biz, max_n)
+
 
 # ---------------------------------------------------------------------------
 # Hero — two-column card with inline SVG illustration
@@ -78,6 +127,13 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# ---------------------------------------------------------------------------
+# City photo carousel (only when a city is selected)
+# ---------------------------------------------------------------------------
+if selected_city:
+    render_carousel(_city_photos(selected_city), city_name=selected_city)
+    st.markdown("<div style='margin-bottom:1.4rem'></div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # System status
