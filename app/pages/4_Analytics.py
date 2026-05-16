@@ -19,7 +19,7 @@ from src.preprocessing import load_processed  # noqa: E402
 st.set_page_config(page_title="Analytics", page_icon="📊", layout="wide")
 inject_css()
 sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
-sidebar_extras()
+sidebar_extras(user_id=st.session_state.get("selected_user_id"))
 page_header("📊 Analytics", "How the data and models actually behave.")
 
 
@@ -115,7 +115,7 @@ if reviews is not None and "sentiment_compound" in reviews.columns:
                 reviews["effective_rating"],
                 bins=[1, 2, 3, 4, 5],
                 include_lowest=True,
-            ).value_counts().sort_index()
+            ).value_counts().sort_index().rename(index=str)
         )
         ec2.caption("Effective rating (after sentiment blend)")
 else:

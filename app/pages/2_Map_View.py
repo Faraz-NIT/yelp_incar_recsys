@@ -17,7 +17,7 @@ from app.components.styles import inject_css, page_header, sidebar_extras, sideb
 st.set_page_config(page_title="Map View", page_icon="🗺️", layout="wide")
 inject_css()
 sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
-sidebar_extras()
+sidebar_extras(user_id=st.session_state.get("selected_user_id"))
 page_header("🗺️ Map View", "Where the recommendations actually are.")
 
 

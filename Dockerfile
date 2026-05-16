@@ -24,15 +24,16 @@ RUN pip install --upgrade pip setuptools wheel \
 # Copy the rest of the project
 COPY . .
 
-# Streamlit listens here
+# Streamlit listens on the port Railway (or Docker) assigns
 EXPOSE 8501
 
 ENV PYTHONPATH=/app
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+    CMD curl --fail http://localhost:${PORT:-8501}/_stcore/health || exit 1
 
-CMD ["streamlit", "run", "app/app.py", \
-     "--server.port=8501", \
-     "--server.address=0.0.0.0", \
-     "--server.headless=true"]
+# Shell form so ${PORT:-8501} expands at runtime
+CMD streamlit run app/app.py \
+    --server.port=${PORT:-8501} \
+    --server.address=0.0.0.0 \
+    --server.headless=true

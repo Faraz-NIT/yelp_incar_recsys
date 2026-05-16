@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
 
 import streamlit as st  # noqa: E402
 
-from app.components.carousel import _load_city_photos, render_carousel  # noqa: E402
+from app.components.carousel import _load_city_photos, render_hero_carousel  # noqa: E402
 from app.components.styles import (  # noqa: E402
     inject_css,
     page_header,
@@ -62,7 +62,7 @@ selected_city: str | None = st.sidebar.selectbox(
     key="home_city",
 )
 
-sidebar_extras()
+sidebar_extras(user_id=st.session_state.get("selected_user_id"))
 
 # ---------------------------------------------------------------------------
 # Photo loader (cached per city)
@@ -80,60 +80,17 @@ def _city_photos(city: str, max_n: int = 10) -> list[dict]:
     cols = [c for c in ["business_id", "name", "stars", "categories"] if c in businesses.columns]
     city_biz = (
         businesses[businesses["city"] == city][cols]
-        .sample(frac=1, random_state=42)  # shuffle for variety
+        .sort_values("stars", ascending=False)
         .to_dict("records")
     )
     return _load_city_photos(photo_map, photos_dir, city_biz, max_n)
 
 
 # ---------------------------------------------------------------------------
-# Hero — two-column card with inline SVG illustration
+# Hero + carousel (combined, photo panel on the right of the hero card)
 # ---------------------------------------------------------------------------
-def _read_svg(path: Path) -> str:
-    return path.read_text(encoding="utf-8") if path.exists() else ""
-
-_STATIC = ROOT / "app" / "static"
-
-def _svg_img_tag(path: Path, alt: str = "") -> str:
-    """Return an <img> tag with the SVG embedded as a base64 data URI."""
-    content = _read_svg(path)
-    if not content:
-        return ""
-    b64 = base64.b64encode(content.encode()).decode()
-    return f'<img src="data:image/svg+xml;base64,{b64}" alt="{alt}" class="hero-img"/>'
-
-_hero_right = _svg_img_tag(_STATIC / "hero.svg", "In-car restaurant illustration")
-
-st.markdown(
-    f"""
-    <div class="hero-card">
-      <div class="hero-left">
-        <span class="hero-eyebrow">In-Car &middot; Recommendations</span>
-        <h1 class="hero-title">Where to <em class="hero-accent">next</em>.</h1>
-        <p class="hero-subtitle">
-          A personalised restaurant concierge for the road &mdash;
-          surfacing the right table at the right moment, wherever
-          the drive takes you.
-        </p>
-        <div class="hero-pills">
-          <span class="hero-pill"><span class="hero-pill-dot">&#9679;</span>Live recommendations</span>
-          <span class="hero-pill">Top-N &middot; personalised</span>
-        </div>
-      </div>
-      <div class="hero-right">
-        {_hero_right}
-      </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# ---------------------------------------------------------------------------
-# City photo carousel (only when a city is selected)
-# ---------------------------------------------------------------------------
-if selected_city:
-    render_carousel(_city_photos(selected_city), city_name=selected_city)
-    st.markdown("<div style='margin-bottom:1.4rem'></div>", unsafe_allow_html=True)
+_slides = _city_photos(selected_city) if selected_city else []
+render_hero_carousel(_slides, city_name=selected_city or "")
 
 # ---------------------------------------------------------------------------
 # System status
@@ -179,6 +136,11 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+_STATIC = ROOT / "app" / "static"
+
+def _read_svg(path: Path) -> str:
+    return path.read_text(encoding="utf-8") if path.exists() else ""
 
 def _icon_img(path: Path, alt: str = "") -> str:
     content = _read_svg(path)

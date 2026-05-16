@@ -167,11 +167,20 @@ with id_col2:
                 options=top_users,
                 format_func=lambda u: f"{u[:8]}… ({int((interactions['user_id'] == u).sum())} ratings)",
                 label_visibility="collapsed",
+                key="selected_user_id",
             )
         else:
             st.info("No users in interactions yet.")
+    else:
+        # Cold-start mode — clear any stale returning-user id from session state
+        st.session_state["selected_user_id"] = None
 
-st.session_state["selected_user_id"] = selected_user_id
+if mode == "Returning user":
+    selected_user_id = st.session_state.get("selected_user_id")
+
+# Clear any cached cold-start profile when switching to a returning user.
+if mode == "Returning user":
+    st.session_state.pop("cold_start_profile", None)
 
 # Show cold-start regime + explanation
 threshold = 3
@@ -225,6 +234,29 @@ use_llm = st.sidebar.checkbox(
     "per recommendation. Falls back to a template otherwise.",
 )
 
+_MODEL_LABELS: dict[str, str] = {
+    "hybrid":        "🔀 Hybrid (recommended)",
+    "popularity":    "🏆 Popularity",
+    "content_based": "🎯 Content-based",
+    "item_cf":       "👥 Item-CF",
+    "user_cf":       "🤝 User-CF",
+    "matrix_fact":   "🧮 Matrix Factorization",
+}
+st.sidebar.markdown(
+    '<p style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;'
+    'color:#9CA3AF;text-transform:uppercase;margin:1.2rem 0 0.3rem 0;">MODEL</p>',
+    unsafe_allow_html=True,
+)
+selected_model_key: str = st.sidebar.selectbox(  # type: ignore[assignment]
+    "Recommender model",
+    options=list(_MODEL_LABELS.keys()),
+    format_func=lambda k: _MODEL_LABELS[k],
+    index=0,
+    key="selected_model_key",
+    label_visibility="collapsed",
+    help="Swap the active scoring engine. Models that need user history fall back to Popularity for cold-start users.",
+)
+
 # ---------------------------------------------------------------------------
 # Build candidate set
 # ---------------------------------------------------------------------------
@@ -258,14 +290,39 @@ pref_profile = None
 if profile is not None and profile.cuisines:
     pref_profile = models["content_based"].build_preference_profile(profile.cuisines)
 
-with st.spinner("Scoring restaurants ..."):
-    recs = hybrid.recommend(
-        user_id=selected_user_id,
-        candidates=cand,
-        top_n=filters.top_n,
-        weights=weights,
-        preference_profile=pref_profile,
+# Resolve the active model and handle cold-start incompatibility.
+active_model = models[selected_model_key]
+_model_needs_history = getattr(active_model, "needs_user_history", True)
+if _model_needs_history and not selected_user_id:
+    st.warning(
+        f"**{_MODEL_LABELS[selected_model_key]}** requires a returning user's rating "
+        "history and cannot score a cold-start user. Falling back to Popularity."
     )
+    active_model = models["popularity"]
+    selected_model_key = "popularity"
+
+with st.spinner("Scoring restaurants ..."):
+    if selected_model_key == "hybrid":
+        recs = hybrid.recommend(
+            user_id=selected_user_id,
+            candidates=cand,
+            top_n=filters.top_n,
+            weights=weights,
+            preference_profile=pref_profile,
+        )
+    elif selected_model_key == "content_based":
+        recs = active_model.recommend(
+            user_id=selected_user_id,
+            candidates=cand,
+            top_n=filters.top_n,
+            preference_profile=pref_profile,
+        )
+    else:
+        recs = active_model.recommend(
+            user_id=selected_user_id,
+            candidates=cand,
+            top_n=filters.top_n,
+        )
 
 # Optional LLM annotation
 user_cuisines = (profile.cuisines if profile else filters.cuisines) or None
@@ -294,10 +351,15 @@ step_header("03", "Recommendations")
 mc1, mc2, mc3, mc4, mc5 = st.columns(5)
 mc1.metric("Candidates", len(cand))
 mc2.metric("Returned", len(recs))
-mc3.metric(
-    "Personalised w.", f"{weights.personalized:.2f}", delta=f"{weights.personalized - base_weights.personalized:+.2f}"
-)
-mc4.metric("Content w.", f"{weights.content:.2f}")
+if selected_model_key == "hybrid":
+    mc3.metric(
+        "Personalised w.", f"{weights.personalized:.2f}",
+        delta=f"{weights.personalized - base_weights.personalized:+.2f}",
+    )
+    mc4.metric("Content w.", f"{weights.content:.2f}")
+else:
+    mc3.metric("Model", _MODEL_LABELS[selected_model_key])
+    mc4.metric("Personalised", "Yes" if not getattr(active_model, "needs_user_history", True) is False else str(bool(selected_user_id)))
 mc5.metric(
     "From", src_label,
     help=f"Lat {lat:.4f}, Lon {lon:.4f}",
@@ -319,15 +381,19 @@ render_recommendations(
 # Diagnostic expander
 # ---------------------------------------------------------------------------
 with st.expander("🔬 Under the hood"):
-    st.write("**Active hybrid weights** (after cold-start adjustment):")
-    st.json(
-        {
-            "personalised": round(weights.personalized, 3),
-            "content": round(weights.content, 3),
-            "popularity": round(weights.popularity, 3),
-            "distance": round(weights.distance, 3),
-        }
-    )
+    if selected_model_key == "hybrid":
+        st.write("**Active hybrid weights** (after cold-start adjustment):")
+        st.json(
+            {
+                "personalised": round(weights.personalized, 3),
+                "content": round(weights.content, 3),
+                "popularity": round(weights.popularity, 3),
+                "distance": round(weights.distance, 3),
+            }
+        )
+    else:
+        st.write(f"**Active model:** {_MODEL_LABELS[selected_model_key]}")
+        st.write(f"Needs user history: `{getattr(active_model, 'needs_user_history', True)}`")
     st.write(
         f"User regime: `{regime}` · history ratings: `{n_history}` · "
         f"candidate set: `{len(cand)}` restaurants within {filters.radius_km} km"

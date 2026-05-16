@@ -15,6 +15,10 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
     ColdStartProfile | None
         The captured profile when the user submits, else ``None``.
     """
+    # Return already-submitted profile so it survives Streamlit reruns.
+    if "cold_start_profile" in st.session_state:
+        return st.session_state["cold_start_profile"]
+
     st.markdown(
         "### 👋 Welcome — let's tune your in-car recommendations"
     )
@@ -75,9 +79,11 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
     if kids:
         attributes.append("kids")
 
-    return ColdStartProfile(
+    profile = ColdStartProfile(
         cuisines=cuisines,
         attributes=attributes,
         price_levels=price_levels,
         radius_km=radius,
     )
+    st.session_state["cold_start_profile"] = profile
+    return profile

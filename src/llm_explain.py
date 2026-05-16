@@ -46,8 +46,9 @@ def template_explanation(row: pd.Series, user_cuisines: list[str] | None) -> str
     pieces.append(f"{row.get('stars', '?')}★ on Yelp")
     if "distance_km" in row and pd.notna(row["distance_km"]):
         pieces.append(f"{row['distance_km']:.1f} km from you")
-    if row.get("price_level"):
-        pieces.append(f"price {'$' * int(row['price_level'])}")
+    price_level = row.get("price_level")
+    if price_level is not None and pd.notna(price_level):
+        pieces.append(f"price {'$' * int(price_level)}")
     why = ", ".join(pieces)
     return f"A {primary.lower()} spot — {why}."
 
