@@ -41,6 +41,7 @@ def _try_js_geolocation() -> Optional[tuple[float, float]]:
 
 def render_location_picker(
     cities_in_dataset: list[str] | None = None,
+    show_header: bool = True,
 ) -> tuple[float, float, str] | None:
     """Render the location picker and return (lat, lon, source_label).
 
@@ -60,7 +61,8 @@ def render_location_picker(
                 st.rerun()
         return lat, lon, src
 
-    st.markdown("### Where are you driving from?")
+    if show_header:
+        st.markdown("### Where are you driving from?")
 
     tab_gps, tab_city, tab_manual = st.tabs(
         ["🛰 Use my GPS", "🏙 Pick a city", "📌 Enter coordinates"]

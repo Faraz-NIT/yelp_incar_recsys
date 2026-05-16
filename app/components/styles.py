@@ -986,6 +986,12 @@ details summary p {
     font-family: "Cormorant Garamond", serif !important;
 }
 
+/* ---------- Sidebar workspace link ---------- */
+a.sidebar-ws-item {
+    text-decoration: none !important;
+    cursor: pointer !important;
+}
+
 /* ---------- Sidebar logo ---------- */
 [data-testid="stSidebarHeader"] {
     padding: 1rem 1rem 0.4rem 1rem !important;
@@ -996,6 +1002,88 @@ details summary p {
     width: 100% !important;
     max-width: 100% !important;
     height: auto !important;
+}
+
+/* ---------- Discover hero metrics ---------- */
+.disc-metrics {
+    display: flex;
+    gap: 2.5rem;
+    margin-top: 1.1rem;
+}
+.disc-metric-val {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--accent);
+    font-style: italic;
+    font-family: "Cormorant Garamond", serif;
+    line-height: 1.1;
+}
+.disc-metric-unit {
+    font-size: 1.15rem;
+    font-style: normal;
+}
+.disc-metric-label {
+    font-size: 0.57rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-family: "Cormorant Garamond", serif;
+    margin-top: 0.18rem;
+}
+.disc-pick-badge {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    background: #1C2438;
+    color: #fff;
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 0.22rem 0.65rem;
+    border-radius: 4px;
+    font-family: "Cormorant Garamond", serif;
+    text-transform: uppercase;
+}
+
+/* ---------- Discover step headers ---------- */
+.disc-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+    margin: 3rem 0 1.1rem 0;
+}
+.disc-step-num {
+    font-size: 0.72rem;
+    font-style: italic;
+    font-weight: 500;
+    color: var(--accent);
+    opacity: 0.6;
+    min-width: 1.4rem;
+    padding-top: 0.6rem;
+    flex-shrink: 0;
+    font-family: "Cormorant Garamond", serif;
+}
+.disc-step-head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.25rem;
+}
+.disc-step-title {
+    font-size: 1.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: "Cormorant Garamond", serif;
+    margin: 0;
+    line-height: 1.1;
+}
+.disc-step-sub {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin: 0.2rem 0 0 0;
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 500;
 }
 
 /* Hide Streamlit branding */
@@ -1070,7 +1158,18 @@ def sidebar_extras(
             f'stroke-linejoin="round" style="flex-shrink:0">{body}</svg>'
         )
 
-    dataset_icon  = _icon('<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>')
+    yelp_logo = (
+        '<svg width="15" height="15" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"'
+        ' style="flex-shrink:0;border-radius:50%">'
+        '<circle cx="32" cy="32" r="32" fill="#D32323"/>'
+        '<g fill="white" transform="translate(32,32)">'
+        '<path d="M0,0 C-5,-4,-6,-14,0,-24 C6,-14,5,-4,0,0Z"/>'
+        '<path d="M0,0 C-5,-4,-6,-14,0,-24 C6,-14,5,-4,0,0Z" transform="rotate(72)"/>'
+        '<path d="M0,0 C-5,-4,-6,-14,0,-24 C6,-14,5,-4,0,0Z" transform="rotate(144)"/>'
+        '<path d="M0,0 C-5,-4,-6,-14,0,-24 C6,-14,5,-4,0,0Z" transform="rotate(216)"/>'
+        '<path d="M0,0 C-5,-4,-6,-14,0,-24 C6,-14,5,-4,0,0Z" transform="rotate(288)"/>'
+        '</g></svg>'
+    )
     pipeline_icon = _icon('<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/>')
     settings_icon = _icon('<circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>')
 
@@ -1104,7 +1203,7 @@ def sidebar_extras(
         f"""
         <span class="sidebar-group-label">WORKSPACE</span>
         <div class="sidebar-ws-wrap">
-          <div class="sidebar-ws-item">{dataset_icon} Dataset</div>
+          <a class="sidebar-ws-item" href="https://www.yelp.com/dataset" target="_blank" rel="noopener noreferrer">{yelp_logo} Yelp Dataset</a>
           <div class="sidebar-ws-item">{pipeline_icon} Pipelines</div>
           <div class="sidebar-ws-item">{settings_icon} Settings</div>
         </div>

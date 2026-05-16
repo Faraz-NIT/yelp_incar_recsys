@@ -1,14 +1,4 @@
-"""Discover page: pick user, set GPS, get hybrid recommendations.
-
-Flow:
-  1. Confirm processed data + trained models are present.
-  2. User picks an existing user_id (or chooses cold-start mode).
-  3. User confirms GPS / picks city / enters coordinates.
-  4. Sidebar filters (cuisines, price, radius, attributes, top-N).
-  5. We compute distances, apply hard filters, run the hybrid scorer.
-  6. Optional Claude annotation for the "why" per card.
-  7. Render the cards.
-"""
+"""Discover page: pick user, set GPS, get hybrid recommendations."""
 from __future__ import annotations
 
 import base64
@@ -19,12 +9,14 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+
 def _svg_b64(name: str) -> str:
     p = ROOT / "app" / "static" / name
     try:
         return f"data:image/svg+xml;base64,{base64.b64encode(p.read_text(encoding='utf-8').encode()).decode()}"
     except Exception:
         return ""
+
 
 _ICON_DISCOVER = _svg_b64("icon-discover.svg")
 _ICON_MAP      = _svg_b64("icon-mapview.svg")
@@ -37,15 +29,12 @@ from app.components.cold_start import render_onboarding  # noqa: E402
 from app.components.filters import apply_hard_filters, render_filter_sidebar  # noqa: E402
 from app.components.location import render_location_picker  # noqa: E402
 from app.components.styles import (  # noqa: E402
-    breadcrumb,
     empty_state_card,
     field_label,
     inject_css,
     sidebar_extras,
     sidebar_logo,
     status_banner,
-    step_header,
-    styled_page_header,
 )
 from src.cold_start import (  # noqa: E402
     adjust_weights,
@@ -65,12 +54,38 @@ st.set_page_config(page_title="Discover", page_icon="·", layout="wide")
 inject_css()
 sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
 sidebar_extras(user_id=st.session_state.get("selected_user_id"))
-breadcrumb(("Recommendations", False), ("Discover", True))
-styled_page_header(
-    "Discover",
-    "Find a great place to eat — wherever you are right now.",
-    icon_src=_ICON_DISCOVER,
+
+
+# ---------------------------------------------------------------------------
+# Inline helpers
+# ---------------------------------------------------------------------------
+_PERSON_ICON = (
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" '
+    'style="color:var(--text-primary);flex-shrink:0">'
+    '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>'
+    '<circle cx="12" cy="7" r="4"/></svg>'
 )
+_PIN_ICON = (
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" '
+    'style="color:var(--text-primary);flex-shrink:0">'
+    '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>'
+    '<circle cx="12" cy="10" r="3"/></svg>'
+)
+
+
+def _disc_step(num: str, icon: str, heading: str, subtitle: str = "") -> None:
+    sub = f'<p class="disc-step-sub">{subtitle}</p>' if subtitle else ""
+    st.markdown(
+        f'<div class="disc-step">'
+        f'<span class="disc-step-num">{num}</span>'
+        f'<div>'
+        f'<div class="disc-step-head">{icon}'
+        f'<span class="disc-step-title">{heading}</span></div>'
+        f'{sub}</div></div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +93,6 @@ styled_page_header(
 # ---------------------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def _load_models() -> dict:
-    """Load all five trained recommenders + assemble the hybrid."""
     models: dict = {}
     for key in ("popularity", "content_based", "item_cf", "user_cf", "matrix_fact"):
         path = MODELS_DIR / MODEL_FILES[key]
@@ -104,41 +118,76 @@ def _load_photo_map() -> dict:
     return load_business_photos(RAW_DIR)
 
 
-data = _load_data()
-models = _load_models()
-photo_map = _load_photo_map()
+data    = _load_data()
+models  = _load_models()
+photo_map  = _load_photo_map()
 photos_dir = RAW_DIR / "photos"
 
 if not data or "businesses" not in data:
-    status_banner(
-        "err",
-        "No processed data found. Run the pipeline from the Admin page first.",
-    )
+    status_banner("err", "No processed data found. Run the pipeline from the Admin page first.")
     st.stop()
 
 if not models:
-    status_banner(
-        "err",
-        "Trained models missing. Train them from the Admin page first.",
-    )
+    status_banner("err", "Trained models missing. Train them from the Admin page first.")
     st.stop()
 
-businesses = data["businesses"]
+businesses   = data["businesses"]
 interactions = data.get("interactions", pd.DataFrame(columns=["user_id", "business_id"]))
-reviews = data.get("reviews")
+reviews      = data.get("reviews")
 
 # ---------------------------------------------------------------------------
-# Identity selector
+# Hero card
 # ---------------------------------------------------------------------------
-step_header(
+n_biz_fmt = f"{len(businesses):,}"
+hero_b64  = _svg_b64("hero.svg")
+
+st.markdown(
+    f"""
+    <div class="hero-card">
+      <div class="hero-left">
+        <div class="page-header-wrap" style="margin-bottom:1rem;">
+          <div class="page-header-badge">
+            <img src="{_ICON_DISCOVER}" alt="Discover"/>
+          </div>
+          <div>
+            <h1 class="page-header-title">Discover</h1>
+            <p class="page-header-subtitle">Find a great place to eat — wherever you are right now.</p>
+          </div>
+        </div>
+        <div class="disc-metrics">
+          <div>
+            <div class="disc-metric-val">{n_biz_fmt}</div>
+            <div class="disc-metric-label">PLACES INDEXED</div>
+          </div>
+          <div>
+            <div class="disc-metric-val">36 <span class="disc-metric-unit">mi</span></div>
+            <div class="disc-metric-label">DEFAULT RADIUS</div>
+          </div>
+          <div>
+            <div class="disc-metric-val">4.6<span class="disc-metric-unit">s</span></div>
+            <div class="disc-metric-label">MEDIAN LATENCY</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-right">
+        <img src="{hero_b64}" class="hero-img" alt="Discover illustration"/>
+        <span class="disc-pick-badge">#1 pick</span>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ---------------------------------------------------------------------------
+# Step 01 — Identity selector
+# ---------------------------------------------------------------------------
+_disc_step(
     "01",
-    "Who's driving?",
+    _PERSON_ICON,
+    "Who&#8217;s driving?",
     "Choose a returning user to get personalised picks, or start fresh.",
 )
 
-# Pre-compute the top-N users by interaction count so the demo always has
-# someone with real history available — picking a random user from a 600-user
-# pool is more demonstrative than asking the user to type an opaque ID.
 top_users = (
     interactions["user_id"]
     .value_counts()
@@ -150,7 +199,7 @@ top_users = (
 
 id_col1, id_col2 = st.columns([2, 1])
 with id_col1:
-    field_label("Mode")
+    field_label("MODE")
     mode = st.radio(
         "Mode",
         options=["Returning user", "New user (cold start)"],
@@ -161,7 +210,7 @@ with id_col2:
     selected_user_id: str | None = None
     if mode == "Returning user":
         if top_users:
-            field_label("Pick a user")
+            field_label("PICK A USER")
             selected_user_id = st.selectbox(
                 "Pick a user",
                 options=top_users,
@@ -172,24 +221,39 @@ with id_col2:
         else:
             st.info("No users in interactions yet.")
     else:
-        # Cold-start mode — clear any stale returning-user id from session state
         st.session_state["selected_user_id"] = None
 
 if mode == "Returning user":
     selected_user_id = st.session_state.get("selected_user_id")
 
-# Clear any cached cold-start profile when switching to a returning user.
 if mode == "Returning user":
     st.session_state.pop("cold_start_profile", None)
 
-# Show cold-start regime + explanation
 threshold = 3
-regime = classify_user(selected_user_id, interactions, threshold=threshold)
+regime    = classify_user(selected_user_id, interactions, threshold=threshold)
 n_history = int((interactions["user_id"] == selected_user_id).sum()) if selected_user_id else 0
-status_banner(
-    "ok" if regime == "established" else "warn",
-    get_cold_start_explanation(regime, n_history),
-)
+
+if regime == "established":
+    banner_msg = (
+        f"{n_history} ratings on record — "
+        f'<em style="color:var(--accent)">full hybrid model</em>'
+        f" with collaborative filtering at the centre."
+    )
+    banner_kind = "ok"
+elif regime == "light":
+    banner_msg = (
+        f"Only {n_history} ratings in history — blending your stated "
+        "preferences with collaborative filtering."
+    )
+    banner_kind = "warn"
+else:
+    banner_msg = (
+        "No rating history found — using your stated cuisine preferences "
+        "plus the most popular nearby restaurants."
+    )
+    banner_kind = "warn"
+
+status_banner(banner_kind, banner_msg)
 
 # ---------------------------------------------------------------------------
 # Onboarding (only when cold)
@@ -203,14 +267,15 @@ if mode == "New user (cold start)" or regime == "new":
             st.stop()
 
 # ---------------------------------------------------------------------------
-# Location
+# Step 02 — Location
 # ---------------------------------------------------------------------------
-step_header(
+_disc_step(
     "02",
+    _PIN_ICON,
     "Where are you driving from?",
     "Three ways to set a starting point. We never store it.",
 )
-loc = render_location_picker()
+loc = render_location_picker(show_header=False)
 if loc is None:
     empty_state_card(
         "Pick a location to see recommendations",
@@ -284,13 +349,10 @@ base_weights = HybridWeights(
 )
 weights = adjust_weights(base_weights, regime)
 
-# Pre-compute a content preference profile if we have explicit cold-start
-# cuisine choices — overrides the user-history-based content signal.
 pref_profile = None
 if profile is not None and profile.cuisines:
     pref_profile = models["content_based"].build_preference_profile(profile.cuisines)
 
-# Resolve the active model and handle cold-start incompatibility.
 active_model = models[selected_model_key]
 _model_needs_history = getattr(active_model, "needs_user_history", True)
 if _model_needs_history and not selected_user_id:
@@ -324,7 +386,6 @@ with st.spinner("Scoring restaurants ..."):
             top_n=filters.top_n,
         )
 
-# Optional LLM annotation
 user_cuisines = (profile.cuisines if profile else filters.cuisines) or None
 if use_llm or filters.show_components:
     with st.spinner("Generating explanations ..."):
@@ -336,7 +397,6 @@ if use_llm or filters.show_components:
             max_llm_calls=5,
         )
 else:
-    # Template fallback for "why"
     recs = annotate_recommendations(
         recs,
         user_cuisines=user_cuisines,
@@ -345,9 +405,17 @@ else:
     )
 
 # ---------------------------------------------------------------------------
-# Header strip with the active mix
+# Step 03 — Results strip
 # ---------------------------------------------------------------------------
-step_header("03", "Recommendations")
+st.markdown(
+    '<div class="disc-step" style="margin-top:3rem;margin-bottom:0.5rem;">'
+    '<span class="disc-step-num">03</span>'
+    '<div><div class="disc-step-head">'
+    '<span class="disc-step-title">Recommendations</span>'
+    '</div></div></div>',
+    unsafe_allow_html=True,
+)
+
 mc1, mc2, mc3, mc4, mc5 = st.columns(5)
 mc1.metric("Candidates", len(cand))
 mc2.metric("Returned", len(recs))
@@ -359,15 +427,15 @@ if selected_model_key == "hybrid":
     mc4.metric("Content w.", f"{weights.content:.2f}")
 else:
     mc3.metric("Model", _MODEL_LABELS[selected_model_key])
-    mc4.metric("Personalised", "Yes" if not getattr(active_model, "needs_user_history", True) is False else str(bool(selected_user_id)))
-mc5.metric(
-    "From", src_label,
-    help=f"Lat {lat:.4f}, Lon {lon:.4f}",
-)
+    mc4.metric(
+        "Personalised",
+        "Yes" if not getattr(active_model, "needs_user_history", True) is False
+        else str(bool(selected_user_id)),
+    )
+mc5.metric("From", src_label, help=f"Lat {lat:.4f}, Lon {lon:.4f}")
 
-# Persist the latest recs so the Map page can pick them up
-st.session_state["last_recs"] = recs
-st.session_state["last_center"] = (lat, lon)
+st.session_state["last_recs"]      = recs
+st.session_state["last_center"]    = (lat, lon)
 st.session_state["last_radius_km"] = filters.radius_km
 
 render_recommendations(
@@ -386,9 +454,9 @@ with st.expander("🔬 Under the hood"):
         st.json(
             {
                 "personalised": round(weights.personalized, 3),
-                "content": round(weights.content, 3),
-                "popularity": round(weights.popularity, 3),
-                "distance": round(weights.distance, 3),
+                "content":      round(weights.content, 3),
+                "popularity":   round(weights.popularity, 3),
+                "distance":     round(weights.distance, 3),
             }
         )
     else:
