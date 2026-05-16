@@ -26,7 +26,12 @@ from src.config import (
     REVIEW_PARQUET,
     PipelineConfig,
 )
-from src.evaluation import evaluate_all, train_test_split_interactions
+from src.evaluation import (
+    evaluate_all,
+    evaluate_error,
+    evaluate_ranking,
+    train_test_split_interactions,
+)
 from src.preprocessing import load_processed, run_preprocessing
 from src.recommenders import (
     ContentBasedRecommender,
@@ -187,24 +192,40 @@ def evaluate_models(
     test: pd.DataFrame,
     businesses: pd.DataFrame,
     k: int = 10,
-    max_users: int | None = 300,
+    max_users: int | None = 150,
     progress_cb: ProgressCB | None = None,
 ) -> pd.DataFrame:
-    if progress_cb:
-        progress_cb(0.1, "Computing per-model metrics ...")
-    # Also evaluate the hybrid built from these components
+    def report(p: float, msg: str) -> None:
+        logger.info("[evaluate %.0f%%] %s", p * 100, msg)
+        if progress_cb:
+            progress_cb(p, msg)
+
+    # Include hybrid alongside base models
     hybrid = HybridRecommender(
         personalised=models["matrix_fact"],
         content=models["content_based"],
         popularity=models["popularity"],
     )
-    full = {**models, "hybrid": hybrid}
-    df = evaluate_all(full, train, test, businesses, k=k, max_users=max_users)
-    df = df.sort_values(f"ndcg@{k}", ascending=False).reset_index(drop=True)
+    full: dict[str, Any] = {**models, "hybrid": hybrid}
+
+    rows: list[dict] = []
+    model_names = list(full.keys())
+    n = len(model_names)
+    for i, (name, model) in enumerate(full.items()):
+        report(
+            0.05 + 0.90 * i / n,
+            f"Evaluating {name} ({i + 1}/{n}) ...",
+        )
+        err = evaluate_error(model, test)
+        rank = evaluate_ranking(
+            model, train, test, businesses, k=k, max_users=max_users
+        )
+        rows.append({"model": name, **err.as_dict(), **rank.as_dict()})
+
+    df = pd.DataFrame(rows).sort_values(f"ndcg@{k}", ascending=False).reset_index(drop=True)
     metrics_path = MODELS_DIR / "evaluation_results.csv"
     df.to_csv(metrics_path, index=False)
-    if progress_cb:
-        progress_cb(1.0, f"Saved metrics to {metrics_path}")
+    report(1.0, f"Saved metrics → {metrics_path.name}")
     return df
 
 

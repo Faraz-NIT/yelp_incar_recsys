@@ -153,7 +153,13 @@ def evaluate_ranking(
     if test.empty:
         return RankingMetrics(precision=float("nan"), recall=float("nan"),
                               ndcg=float("nan"), n_users=0, k=k)
+    all_biz_set = set(businesses["business_id"])
     all_biz = businesses["business_id"].tolist()
+    # Pre-index train by user to avoid O(n_train) scan per user
+    train_seen: dict[str, set[str]] = {
+        uid: set(grp["business_id"])
+        for uid, grp in train.groupby("user_id")
+    }
     precisions, recalls, ndcgs = [], [], []
     users_evaluated = 0
 
@@ -168,8 +174,8 @@ def evaluate_ranking(
         if not relevant:
             continue
         # Don't recommend items the user already rated in training
-        seen = set(train.loc[train["user_id"] == user_id, "business_id"])
-        cand_ids = [b for b in all_biz if b not in seen]
+        seen = train_seen.get(user_id, set())
+        cand_ids = list(all_biz_set - seen)
         if not cand_ids:
             continue
         cand_df = pd.DataFrame({"business_id": cand_ids})

@@ -61,7 +61,7 @@ from src.recommenders.hybrid import HybridRecommender, HybridWeights  # noqa: E4
 from src.utils import load_business_photos, load_pickle  # noqa: E402
 
 
-st.set_page_config(page_title="Discover", page_icon="🍽️", layout="wide")
+st.set_page_config(page_title="Discover", page_icon="·", layout="wide")
 inject_css()
 sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
 sidebar_extras(user_id=st.session_state.get("selected_user_id"))

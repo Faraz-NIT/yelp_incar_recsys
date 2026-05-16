@@ -26,7 +26,7 @@ def render_filter_sidebar(
     default_radius: float = 5.0,
 ) -> UserFilters:
     """Render the filter sidebar and return the chosen filters."""
-    st.sidebar.markdown("### 🎛 Refine results")
+    st.sidebar.markdown("### Refine results")
 
     if businesses is not None and "categories" in businesses.columns:
         # Build cuisine list from data if available, fallback to defaults

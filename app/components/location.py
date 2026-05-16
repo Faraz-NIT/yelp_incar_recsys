@@ -60,7 +60,7 @@ def render_location_picker(
                 st.rerun()
         return lat, lon, src
 
-    st.markdown("### 📍 Where are you driving from?")
+    st.markdown("### Where are you driving from?")
 
     tab_gps, tab_city, tab_manual = st.tabs(
         ["🛰 Use my GPS", "🏙 Pick a city", "📌 Enter coordinates"]

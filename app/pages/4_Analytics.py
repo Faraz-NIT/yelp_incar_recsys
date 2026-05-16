@@ -8,7 +8,10 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+import plotly.express as px  # noqa: E402
+import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from app.components.styles import inject_css, page_header, sidebar_extras, sidebar_logo, status_banner  # noqa: E402
@@ -16,11 +19,11 @@ from src.config import MODELS_DIR  # noqa: E402
 from src.preprocessing import load_processed  # noqa: E402
 
 
-st.set_page_config(page_title="Analytics", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Analytics", page_icon="·", layout="wide")
 inject_css()
 sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
 sidebar_extras(user_id=st.session_state.get("selected_user_id"))
-page_header("📊 Analytics", "How the data and models actually behave.")
+page_header("Analytics", "How the data and models actually behave.")
 
 
 @st.cache_data(show_spinner=False)
@@ -56,17 +59,154 @@ st.markdown("---")
 # ---------------------------------------------------------------------------
 # Model comparison
 # ---------------------------------------------------------------------------
+_MODEL_LABELS = {
+    "popularity":    "Popularity",
+    "content_based": "Content-Based",
+    "item_cf":       "Item-CF",
+    "user_cf":       "User-CF",
+    "matrix_fact":   "ALS",
+    "hybrid":        "Hybrid",
+}
+# Plotly theme colours matching app palette
+_ACCENT   = "#C4563A"
+_PALETTE  = ["#C4563A", "#1C2438", "#6B7280", "#A8422A", "#9CA3AF", "#3B4A6B"]
+
 eval_path = MODELS_DIR / "evaluation_results.csv"
-st.markdown("### 🥊 Model comparison")
+st.markdown("### Model comparison")
 if eval_path.exists():
     eval_df = pd.read_csv(eval_path).round(4)
-    st.dataframe(eval_df, use_container_width=True, hide_index=True)
+    eval_df["Model"] = eval_df["model"].map(_MODEL_LABELS).fillna(eval_df["model"])
 
-    # Bar chart of the headline ranking metric
+    # ── Full metrics table ──────────────────────────────────────────────────
+    display_df = eval_df.drop(columns=["model"], errors="ignore")
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    st.markdown("---")
+
+    ranking_cols = [c for c in eval_df.columns if c.startswith(("precision", "recall", "ndcg"))]
+    error_cols   = [c for c in eval_df.columns if c in ("rmse", "mae")]
+
+    # ── Grouped ranking-metrics bar chart ───────────────────────────────────
+    if ranking_cols:
+        st.markdown("**Ranking quality — Precision, Recall, nDCG**")
+        rank_long = eval_df[["Model"] + ranking_cols].melt(
+            id_vars="Model", var_name="Metric", value_name="Score"
+        )
+        fig_rank = px.bar(
+            rank_long, x="Model", y="Score", color="Metric",
+            barmode="group",
+            color_discrete_sequence=_PALETTE,
+            template="plotly_white",
+        )
+        fig_rank.update_layout(
+            font_family="Cormorant Garamond, serif",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            legend_title_text="",
+            yaxis_title="Score",
+            xaxis_title="",
+            margin=dict(t=10, b=10),
+            height=340,
+        )
+        fig_rank.update_traces(marker_line_width=0)
+        st.plotly_chart(fig_rank, use_container_width=True)
+
+    # ── RMSE / MAE error bar chart ──────────────────────────────────────────
+    if error_cols:
+        st.markdown("**Prediction error — RMSE & MAE** *(lower is better)*")
+        err_long = eval_df[["Model"] + error_cols].melt(
+            id_vars="Model", var_name="Metric", value_name="Error"
+        )
+        fig_err = px.bar(
+            err_long, x="Model", y="Error", color="Metric",
+            barmode="group",
+            color_discrete_sequence=[_ACCENT, "#6B7280"],
+            template="plotly_white",
+        )
+        fig_err.update_layout(
+            font_family="Cormorant Garamond, serif",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            legend_title_text="",
+            yaxis_title="Error",
+            xaxis_title="",
+            margin=dict(t=10, b=10),
+            height=320,
+        )
+        fig_err.update_traces(marker_line_width=0)
+        st.plotly_chart(fig_err, use_container_width=True)
+
+    # ── Precision–Recall scatter ────────────────────────────────────────────
+    prec_col = next((c for c in eval_df.columns if c.startswith("precision")), None)
+    rec_col  = next((c for c in eval_df.columns if c.startswith("recall")), None)
     ndcg_col = next((c for c in eval_df.columns if c.startswith("ndcg")), None)
-    if ndcg_col is not None and "model" in eval_df.columns:
-        st.markdown(f"**{ndcg_col} by model**")
-        st.bar_chart(eval_df.set_index("model")[ndcg_col])
+    if prec_col and rec_col:
+        st.markdown("**Precision–Recall trade-off**")
+        scatter_df = eval_df[["Model", prec_col, rec_col]].copy()
+        if ndcg_col:
+            scatter_df["nDCG"] = eval_df[ndcg_col]
+        fig_pr = px.scatter(
+            scatter_df, x=rec_col, y=prec_col,
+            text="Model",
+            size="nDCG" if ndcg_col else None,
+            size_max=28,
+            color="Model",
+            color_discrete_sequence=_PALETTE,
+            template="plotly_white",
+            labels={rec_col: "Recall@10", prec_col: "Precision@10"},
+        )
+        fig_pr.update_traces(textposition="top center", marker_line_width=0)
+        fig_pr.update_layout(
+            font_family="Cormorant Garamond, serif",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            showlegend=False,
+            margin=dict(t=10, b=10),
+            height=360,
+        )
+        st.plotly_chart(fig_pr, use_container_width=True)
+
+    # ── Normalized performance heatmap ──────────────────────────────────────
+    metric_cols = ranking_cols + error_cols
+    if metric_cols:
+        st.markdown("**Normalised performance heatmap** *(each metric scaled 0 → 1; for error metrics, lower raw value = higher normalised score)*")
+        heat = eval_df[["Model"] + metric_cols].set_index("Model").copy()
+        for col in heat.columns:
+            rng = heat[col].max() - heat[col].min()
+            if rng > 0:
+                if col in error_cols:  # lower is better → invert
+                    heat[col] = 1 - (heat[col] - heat[col].min()) / rng
+                else:
+                    heat[col] = (heat[col] - heat[col].min()) / rng
+        fig_heat = go.Figure(data=go.Heatmap(
+            z=heat.values,
+            x=list(heat.columns),
+            y=list(heat.index),
+            colorscale=[[0, "#F5F0EB"], [0.5, "#E8B4A0"], [1, _ACCENT]],
+            text=np.round(heat.values, 3),
+            texttemplate="%{text}",
+            showscale=True,
+            zmin=0, zmax=1,
+        ))
+        fig_heat.update_layout(
+            font_family="Cormorant Garamond, serif",
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(t=10, b=10),
+            height=max(200, 60 * len(heat)),
+            xaxis=dict(side="top"),
+        )
+        st.plotly_chart(fig_heat, use_container_width=True)
+
+    # ── Metric rank leaderboard ─────────────────────────────────────────────
+    if ranking_cols:
+        st.markdown("**Model ranking per metric** *(1 = best)*")
+        rank_tbl = eval_df[["Model"] + ranking_cols + error_cols].set_index("Model").copy()
+        for col in ranking_cols:
+            rank_tbl[col] = rank_tbl[col].rank(ascending=False).astype(int)
+        for col in error_cols:
+            rank_tbl[col] = rank_tbl[col].rank(ascending=True).astype(int)
+        st.dataframe(rank_tbl, use_container_width=True)
+
 else:
     status_banner(
         "warn",
@@ -78,7 +218,7 @@ st.markdown("---")
 # ---------------------------------------------------------------------------
 # Sentiment distribution
 # ---------------------------------------------------------------------------
-st.markdown("### 💬 Sentiment analysis")
+st.markdown("### Sentiment analysis")
 if reviews is not None and "sentiment_compound" in reviews.columns:
     s_col1, s_col2 = st.columns(2)
     with s_col1:
@@ -129,7 +269,7 @@ st.markdown("---")
 # ---------------------------------------------------------------------------
 # Cuisine landscape
 # ---------------------------------------------------------------------------
-st.markdown("### 🍜 Cuisine landscape")
+st.markdown("### Cuisine landscape")
 if businesses is not None and "categories" in businesses.columns:
     cat_counts: dict[str, int] = {}
     for cats in businesses["categories"].dropna():
@@ -150,7 +290,7 @@ st.markdown("---")
 # ---------------------------------------------------------------------------
 # User activity distribution
 # ---------------------------------------------------------------------------
-st.markdown("### 👥 User activity")
+st.markdown("### User activity")
 if interactions is not None and not interactions.empty:
     per_user = interactions.groupby("user_id").size()
     a_col1, a_col2 = st.columns(2)
@@ -182,7 +322,7 @@ st.markdown("---")
 # ---------------------------------------------------------------------------
 # Geographic spread
 # ---------------------------------------------------------------------------
-st.markdown("### 🗺️ Geographic spread")
+st.markdown("### Geographic spread")
 if (
     businesses is not None
     and "latitude" in businesses.columns

@@ -36,12 +36,12 @@ from src.pipeline import (  # noqa: E402
 )
 
 
-st.set_page_config(page_title="Admin", page_icon="🛠️", layout="wide")
+st.set_page_config(page_title="Admin", page_icon="·", layout="wide")
 inject_css()
 sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
 sidebar_extras(user_id=st.session_state.get("selected_user_id"))
 page_header(
-    "🛠️ Admin",
+    "Admin",
     "Run the data pipeline and train the recommenders. Power-user only.",
 )
 

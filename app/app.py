@@ -32,7 +32,7 @@ from src.utils import load_business_photos  # noqa: E402
 
 st.set_page_config(
     page_title="In-Car Restaurant Recommender",
-    page_icon="🚗",
+    page_icon="·",
     layout="wide",
     initial_sidebar_state="expanded",
 )

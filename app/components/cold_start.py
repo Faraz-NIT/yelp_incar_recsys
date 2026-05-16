@@ -20,7 +20,7 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
         return st.session_state["cold_start_profile"]
 
     st.markdown(
-        "### 👋 Welcome — let's tune your in-car recommendations"
+        "### Welcome — let's tune your in-car recommendations"
     )
     st.caption(
         "We don't have any history for you yet. Tell us a bit about your taste "
