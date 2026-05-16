@@ -1,0 +1,43 @@
+# Byte-compiled / packages
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Environments
+.env
+.venv
+venv/
+env/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Project data — too large for git, hosted externally
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+models/*
+!models/.gitkeep
+*.parquet
+*.pkl
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/

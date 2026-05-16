@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#0f1f3d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Map View">
+  <path d="M6 12 L18 8 L30 12 L42 8 L42 36 L30 40 L18 36 L6 40 Z"></path>
+  <line x1="18" y1="8" x2="18" y2="36"></line>
+  <line x1="30" y1="12" x2="30" y2="40"></line>
+  <path d="M9 30 Q 14 26 18 28" stroke-opacity="0.35"></path>
+  <path d="M31 16 Q 36 14 40 18" stroke-opacity="0.35"></path>
+  <path d="M24 14 C 27.3 14 30 16.7 30 20 C 30 24.5 24 30 24 30 C 24 30 18 24.5 18 20 C 18 16.7 20.7 14 24 14 Z" fill="#c8553d" stroke="#0f1f3d"></path>
+  <circle cx="24" cy="20" r="2.2" fill="#f6efe4" stroke="none"></circle>
+</svg>

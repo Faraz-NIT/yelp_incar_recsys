@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    image: yelp-incar-recsys:latest
+    container_name: yelp-incar-recsys
+    ports:
+      - "8501:8501"
+    environment:
+      # Optional Claude key for the LLM "why" annotations. Falls back to
+      # a deterministic template if unset.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    restart: unless-stopped
