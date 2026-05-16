@@ -230,7 +230,7 @@ filters = render_filter_sidebar(
 use_llm = st.sidebar.checkbox(
     "Use Claude for the 'why' text",
     value=False,
-    help="If ANTHROPIC_API_KEY is set, asks Claude for a one-line rationale "
+    help="If GROQ_API_KEY is set, asks the LLM for a one-line rationale "
     "per recommendation. Falls back to a template otherwise.",
 )
 

@@ -8,9 +8,9 @@ services:
     ports:
       - "8501:8501"
     environment:
-      # Optional Claude key for the LLM "why" annotations. Falls back to
+      # Optional Groq key for the LLM "why" annotations. Falls back to
       # a deterministic template if unset.
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
     volumes:
       - ./data:/app/data
       - ./models:/app/models

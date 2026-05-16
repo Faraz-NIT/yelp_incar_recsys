@@ -603,11 +603,12 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--accent) !important;
     color: white !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     font-weight: 500 !important;
     font-family: "Cormorant Garamond", serif !important;
-    font-size: 0.95rem !important;
+    font-size: 1rem !important;
     letter-spacing: 0.04em !important;
+    padding: 0.55rem 1.5rem !important;
     transition: all 0.18s ease;
 }
 
@@ -636,26 +637,44 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ---------- Tabs ---------- */
 .stTabs [data-baseweb="tab-list"] {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    padding: 0.2rem;
-    gap: 0.2rem;
-    border: 1px solid var(--border);
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    gap: 0;
+    border: none;
+    border-bottom: 1.5px solid var(--border);
 }
 
 .stTabs [data-baseweb="tab"] {
     background: transparent;
     color: var(--text-secondary);
-    border-radius: 6px;
-    padding: 0.5rem 1.1rem;
+    border-radius: 0;
+    padding: 0.55rem 1.3rem;
     font-weight: 500 !important;
     font-size: 0.9rem;
     letter-spacing: 0.02em;
+    border-bottom: 2.5px solid transparent;
+    margin-bottom: -1.5px;
+    transition: color 0.18s;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--accent) !important;
+    background: transparent !important;
 }
 
 .stTabs [aria-selected="true"] {
-    background: var(--accent) !important;
-    color: white !important;
+    background: transparent !important;
+    color: var(--accent) !important;
+    border-bottom: 2.5px solid var(--accent) !important;
+}
+
+/* hide the default BaseWeb highlight bar */
+.stTabs [data-baseweb="tab-highlight"] {
+    display: none !important;
+}
+.stTabs [data-baseweb="tab-border"] {
+    display: none !important;
 }
 
 /* ---------- Status banner ---------- */
@@ -664,28 +683,27 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: var(--radius);
     margin-bottom: 1rem;
     border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
     background: var(--bg-card);
     font-size: 0.9rem;
     font-weight: 500 !important;
+    color: var(--text-primary);
     box-shadow: var(--shadow-sm);
 }
 
 .status-banner.ok {
-    border-color: rgba(21,94,66,0.35);
-    background: rgba(21,94,66,0.04);
-    color: var(--success);
+    border-left-color: var(--success);
+    background: rgba(21,94,66,0.03);
 }
 
 .status-banner.warn {
-    border-color: rgba(120,53,15,0.30);
-    background: rgba(120,53,15,0.04);
-    color: var(--warning);
+    border-left-color: #D97706;
+    background: rgba(120,53,15,0.03);
 }
 
 .status-banner.err {
-    border-color: rgba(127,29,29,0.30);
-    background: rgba(127,29,29,0.04);
-    color: var(--danger);
+    border-left-color: var(--danger);
+    background: rgba(127,29,29,0.03);
 }
 
 /* ---------- Divider ---------- */
@@ -1040,6 +1058,9 @@ def sidebar_extras(
     model_name: str = "Hybrid v2.4",
     region: str = "EU · London",
     user_id: str | None = None,
+    processed_ok: bool | None = None,
+    models_ok: bool | None = None,
+    meta: dict | None = None,
 ) -> None:
     """Inject the WORKSPACE section, status card, and user card into the sidebar."""
     def _icon(body: str) -> str:
@@ -1056,6 +1077,28 @@ def sidebar_extras(
     uid = user_id or ""
     avatar_label = uid[:2].upper() if uid else "DR"
     display_name = (uid[:8] + "…") if uid else "Guest"
+
+    # Optional system-status rows
+    def _status_row(label: str, ok: bool, ok_val: str, fail_val: str) -> str:
+        dot = "dot-green" if ok else "dot-red"
+        val = ok_val if ok else fail_val
+        return (
+            f'<div class="sidebar-status-row">'
+            f'<span class="sidebar-status-key"><span class="{dot}">&#9679;</span>&nbsp;{label}</span>'
+            f'<span class="sidebar-status-val">{val}</span>'
+            f'</div>'
+        )
+
+    _data_row = (
+        _status_row("DATA", processed_ok, "Ready", "Missing")
+        if processed_ok is not None else ""
+    )
+    n_users = (meta or {}).get("n_users", "?")
+    n_biz   = (meta or {}).get("n_businesses", "?")
+    _models_row = (
+        _status_row("MODELS", models_ok, f"{n_biz} restaurants", "Missing")
+        if models_ok is not None else ""
+    )
 
     st.sidebar.markdown(
         f"""
@@ -1074,6 +1117,8 @@ def sidebar_extras(
             <span class="sidebar-status-key"><span class="dot-red">&#9679;</span>&nbsp;REGION</span>
             <span class="sidebar-status-val">{region}</span>
           </div>
+          {_data_row}
+          {_models_row}
         </div>
         <div class="sidebar-user-card">
           <div class="sidebar-user-avatar">{avatar_label}</div>

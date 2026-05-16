@@ -25,7 +25,7 @@ docker-run: docker-build  ## Build then run the container with mounted data/mode
 	docker run --rm -p 8501:8501 \
 		-v $$(pwd)/data:/app/data \
 		-v $$(pwd)/models:/app/models \
-		-e ANTHROPIC_API_KEY=$${ANTHROPIC_API_KEY:-} \
+		-e GROQ_API_KEY=$${GROQ_API_KEY:-} \
 		yelp-incar-recsys:latest
 
 docker-up:  ## docker-compose up (detached).

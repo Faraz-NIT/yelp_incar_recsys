@@ -1,6 +1,6 @@
 """LLM-based explanations for recommendations (Bonus +4 points).
 
-We use Anthropic Claude via the public ``anthropic`` SDK to generate two kinds
+We use Groq's inference API via the official ``groq`` SDK to generate two kinds
 of artefacts:
 
 1. **Per-recommendation rationale**: a one-sentence "why we picked this for
@@ -9,7 +9,7 @@ of artefacts:
 2. **Review summarisation**: a 2-3 sentence summary of what real diners
    typically say about the restaurant — useful as a tooltip / expander.
 
-Both are *strictly optional*. If ``ANTHROPIC_API_KEY`` is missing, we fall
+Both are *strictly optional*. If ``GROQ_API_KEY`` is missing, we fall
 back to a deterministic template explanation so the demo still runs.
 """
 from __future__ import annotations
@@ -22,13 +22,13 @@ import pandas as pd
 from src.utils import logger
 
 try:
-    import anthropic
-    _HAS_ANTHROPIC = True
+    import groq as groq_sdk
+    _HAS_GROQ = True
 except ImportError:  # pragma: no cover
-    _HAS_ANTHROPIC = False
+    _HAS_GROQ = False
 
 
-_MODEL = "claude-haiku-4-5-20251001"  # fast + cheap; sufficient for short explanations
+_MODEL = "llama-3.3-70b-versatile"  # fast, capable; sufficient for short explanations
 
 
 # ---------------------------------------------------------------------------
@@ -54,25 +54,25 @@ def template_explanation(row: pd.Series, user_cuisines: list[str] | None) -> str
 
 
 # ---------------------------------------------------------------------------
-# Anthropic client (lazy)
+# Groq client (lazy)
 # ---------------------------------------------------------------------------
-_client: "anthropic.Anthropic | None" = None
+_client: "groq_sdk.Groq | None" = None
 
 
 def _get_client():
     global _client
-    if not _HAS_ANTHROPIC:
+    if not _HAS_GROQ:
         return None
     if _client is not None:
         return _client
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         return None
     try:
-        _client = anthropic.Anthropic(api_key=api_key)
+        _client = groq_sdk.Groq(api_key=api_key)
         return _client
     except Exception as exc:  # pragma: no cover
-        logger.warning("Could not initialise Anthropic client: %s", exc)
+        logger.warning("Could not initialise Groq client: %s", exc)
         return None
 
 
@@ -91,30 +91,45 @@ def llm_explanation(
 
     review_block = ""
     if recent_review_snippets:
-        joined = "\n- ".join(s[:160] for s in recent_review_snippets[:3])
-        review_block = f"\nRecent diner snippets:\n- {joined}"
+        snippets = [s[:220] for s in recent_review_snippets[:5] if s]
+        joined = "\n• ".join(snippets)
+        review_block = f"\nWhat recent diners said:\n• {joined}"
 
-    prompt = f"""You are an in-car restaurant concierge. In ONE friendly sentence
-(≤30 words), explain why this restaurant is a good pick for the driver. Ground
-your reasoning in the data provided. Do not invent details.
+    price_str = "$" * int(row["price_level"]) if pd.notna(row.get("price_level")) else "unknown"
+    dist_str = f"{row['distance_km']:.1f} km away" if pd.notna(row.get("distance_km")) else "nearby"
+    prefs_str = ", ".join(user_cuisines) if user_cuisines else "no stated preferences"
 
-Restaurant: {row.get("name")}
-Categories: {row.get("categories")}
-Stars: {row.get("stars")} ({row.get("review_count")} reviews)
-Price level: {row.get("price_level")}
-Distance from driver: {row.get("distance_km", "n/a")} km
-Driver's stated cuisine preferences: {user_cuisines or "none"}
+    system_msg = (
+        "You are a witty, knowledgeable in-car dining concierge. "
+        "Your job is to give the driver a compelling, specific reason to stop at a restaurant. "
+        "Be conversational and concrete — mention what makes this place stand out. "
+        "Never fabricate facts not in the data."
+    )
+
+    prompt = f"""Write 1-2 punchy sentences (max 45 words total) explaining why "{row.get('name')}" \
+is a great pick right now for this driver.
+
+Restaurant details:
+  • Categories: {row.get('categories')}
+  • Rating: {row.get('stars')}★ from {row.get('review_count')} reviews
+  • Price: {price_str}
+  • Distance: {dist_str}
+  • Driver prefers: {prefs_str}
 {review_block}
 
-Reply with ONLY the explanation sentence, no preamble.""".strip()
+Output ONLY the explanation — no bullet points, no preamble.""".strip()
 
     try:
-        msg = client.messages.create(
+        resp = client.chat.completions.create(
             model=_MODEL,
-            max_tokens=80,
-            messages=[{"role": "user", "content": prompt}],
+            max_tokens=120,
+            temperature=0.7,
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": prompt},
+            ],
         )
-        text = "".join(b.text for b in msg.content if hasattr(b, "text")).strip()
+        text = (resp.choices[0].message.content or "").strip()
         return text or template_explanation(row, user_cuisines)
     except Exception as exc:  # pragma: no cover
         logger.warning("LLM explanation failed: %s", exc)
@@ -131,22 +146,30 @@ def llm_review_summary(reviews_text: Iterable[str]) -> str:
         # No API: just take the first review trimmed
         return texts[0][:280] + ("…" if len(texts[0]) > 280 else "")
 
-    joined = "\n---\n".join(t[:400] for t in texts[:8])
-    prompt = f"""Summarise what real diners say about this restaurant in 2-3
-sentences (max 60 words). Be specific and balanced — mention both strengths
-and any recurring complaints. Do not invent details.
+    joined = "\n---\n".join(t[:500] for t in texts[:10])
+    system_msg = (
+        "You are a restaurant critic writing concise, useful summaries for hungry travellers. "
+        "Highlight signature dishes, standout qualities, atmosphere, and any consistent complaints. "
+        "Be specific and grounded in the reviews — never invent details."
+    )
+    prompt = f"""Summarise what real diners say about this restaurant in 3-4 sentences (max 80 words).
+Mention: what the food is like, the atmosphere/service, any must-order dishes or recurring issues.
 
 Reviews:
 {joined}
 
-Reply with the summary only.""".strip()
+Reply with the summary only — no headers, no bullet points.""".strip()
     try:
-        msg = client.messages.create(
+        resp = client.chat.completions.create(
             model=_MODEL,
-            max_tokens=160,
-            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200,
+            temperature=0.5,
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": prompt},
+            ],
         )
-        return "".join(b.text for b in msg.content if hasattr(b, "text")).strip()
+        return (resp.choices[0].message.content or "").strip()
     except Exception as exc:  # pragma: no cover
         logger.warning("LLM summary failed: %s", exc)
         return texts[0][:280] + ("…" if len(texts[0]) > 280 else "")

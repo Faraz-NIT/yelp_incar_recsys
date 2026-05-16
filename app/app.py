@@ -22,7 +22,6 @@ from app.components.styles import (  # noqa: E402
     page_header,
     sidebar_extras,
     sidebar_logo,
-    status_banner,
 )
 from src.config import DEFAULT_CONFIG, RAW_DIR  # noqa: E402
 from src.geo import CITY_CENTROIDS  # noqa: E402
@@ -62,7 +61,16 @@ selected_city: str | None = st.sidebar.selectbox(
     key="home_city",
 )
 
-sidebar_extras(user_id=st.session_state.get("selected_user_id"))
+processed_ok = has_processed_data()
+models_ok = has_trained_models()
+meta = load_metadata() if models_ok else {}
+
+sidebar_extras(
+    user_id=st.session_state.get("selected_user_id"),
+    processed_ok=processed_ok,
+    models_ok=models_ok,
+    meta=meta,
+)
 
 # ---------------------------------------------------------------------------
 # Photo loader (cached per city)
@@ -91,38 +99,6 @@ def _city_photos(city: str, max_n: int = 10) -> list[dict]:
 # ---------------------------------------------------------------------------
 _slides = _city_photos(selected_city) if selected_city else []
 render_hero_carousel(_slides, city_name=selected_city or "")
-
-# ---------------------------------------------------------------------------
-# System status
-# ---------------------------------------------------------------------------
-processed_ok = has_processed_data()
-models_ok = has_trained_models()
-meta = load_metadata() if models_ok else {}
-
-c1, c2 = st.columns(2)
-with c1:
-    if processed_ok:
-        status_banner("ok", "Processed dataset available")
-    else:
-        status_banner(
-            "warn",
-            "No processed data yet — head to the Admin page to run the pipeline.",
-        )
-with c2:
-    if models_ok:
-        status_banner(
-            "ok",
-            f"Trained models available "
-            f"({meta.get('n_users', '?')} users · "
-            f"{meta.get('n_businesses', '?')} restaurants)",
-        )
-    else:
-        status_banner(
-            "warn",
-            "No trained models on disk — train them from the Admin page.",
-        )
-
-st.markdown("")
 
 # ---------------------------------------------------------------------------
 # Navigation

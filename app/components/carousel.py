@@ -233,13 +233,40 @@ def render_hero_carousel(
         </script>
         """
     else:
-        city_label = city_name if city_name else "Select a city"
-        hint = (
-            "Add the Yelp photos dataset to see photos."
-            if city_name else
-            "Select a city in the sidebar."
-        )
-        right_html = f"""
+        # Try to use the placeholder food image when no slides are available
+        _placeholder = Path(__file__).resolve().parents[1] / "static" / "placeholder.jpg"
+        if _placeholder.exists():
+            with open(_placeholder, "rb") as _f:
+                _ph_b64 = base64.b64encode(_f.read()).decode()
+            if city_name:
+                _overlay_html = (
+                    f'<div class="ph-overlay">'
+                    f'<div class="ph-city">{city_name}</div>'
+                    f'<div class="ph-hint">Add the Yelp photos dataset to see restaurant photos.</div>'
+                    f'</div>'
+                )
+            else:
+                _overlay_html = (
+                    '<div class="ph-overlay">'
+                    '<div class="ph-city">Your next meal awaits</div>'
+                    '<div class="ph-hint">Select a city in the sidebar to get started.</div>'
+                    '</div>'
+                )
+            right_html = f"""
+        <div class="hero-right" style="position:relative;padding:0;overflow:hidden;">
+          <img src="data:image/jpeg;base64,{_ph_b64}"
+               style="width:100%;height:100%;object-fit:cover;display:block;filter:brightness(0.72);" />
+          {_overlay_html}
+        </div>
+        """
+        else:
+            city_label = city_name if city_name else "Select a city"
+            hint = (
+                "Add the Yelp photos dataset to see photos."
+                if city_name else
+                "Select a city in the sidebar."
+            )
+            right_html = f"""
         <div class="hero-right empty">
           <div class="empty-label">
             <div class="empty-city">{city_label}</div>
@@ -323,6 +350,16 @@ body{{background:transparent;overflow:hidden;font-family:"Cormorant Garamond","T
 .empty-label{{text-align:center;color:#1C2438;}}
 .empty-city{{font-size:1.5rem;font-weight:600;}}
 .empty-hint{{font-size:0.75rem;opacity:0.5;margin-top:0.35rem;font-style:italic;}}
+
+/* placeholder image overlay */
+.ph-overlay{{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:1.2rem 1.5rem 1.4rem;
+  background:linear-gradient(to top,rgba(28,36,56,0.72) 0%,transparent 100%);
+  color:#FFFFFF;
+}}
+.ph-city{{font-size:1.3rem;font-weight:600;letter-spacing:0.01em;line-height:1.2;}}
+.ph-hint{{font-size:0.72rem;opacity:0.75;margin-top:0.3rem;font-style:italic;}}
 
 /* sliding track */
 .track{{

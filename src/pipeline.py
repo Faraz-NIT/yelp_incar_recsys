@@ -251,11 +251,31 @@ def run_full_pipeline(
     if "train" in stages:
         result["train"] = train_models(cfg, make_local_cb("train"))
 
-    if "evaluate" in stages and "train" in result:
+    if "evaluate" in stages:
         data = load_processed()
-        train_df = result["train"]["train"]
-        test_df = result["train"]["test"]
-        models = result["train"]["models"]
+        if "train" in result:
+            # Freshly trained this run — reuse the already-split dataframes.
+            train_df = result["train"]["train"]
+            test_df = result["train"]["test"]
+            models = result["train"]["models"]
+        else:
+            # Evaluate-only run: load saved models from disk and re-split.
+            if not has_trained_models():
+                raise RuntimeError(
+                    "Cannot evaluate: no trained models found on disk. "
+                    "Run the Train stage first."
+                )
+            from src.utils import load_pickle  # noqa: PLC0415 (local import OK)
+            models = {
+                key: load_pickle(MODELS_DIR / MODEL_FILES[key])
+                for key in ("popularity", "content_based", "item_cf", "user_cf", "matrix_fact")
+            }
+            interactions = data["interactions"]
+            train_df, test_df = train_test_split_interactions(
+                interactions,
+                test_size=cfg.test_size,
+                random_state=cfg.random_state,
+            )
         result["evaluate"] = evaluate_models(
             models,
             train_df,
