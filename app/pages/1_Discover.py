@@ -56,36 +56,6 @@ sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
 sidebar_extras(user_id=st.session_state.get("selected_user_id"))
 
 
-# ---------------------------------------------------------------------------
-# Inline helpers
-# ---------------------------------------------------------------------------
-_PERSON_ICON = (
-    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" '
-    'style="color:var(--text-primary);flex-shrink:0">'
-    '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>'
-    '<circle cx="12" cy="7" r="4"/></svg>'
-)
-_PIN_ICON = (
-    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" '
-    'style="color:var(--text-primary);flex-shrink:0">'
-    '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>'
-    '<circle cx="12" cy="10" r="3"/></svg>'
-)
-
-
-def _disc_step(num: str, icon: str, heading: str, subtitle: str = "") -> None:
-    sub = f'<p class="disc-step-sub">{subtitle}</p>' if subtitle else ""
-    st.markdown(
-        f'<div class="disc-step">'
-        f'<span class="disc-step-num">{num}</span>'
-        f'<div>'
-        f'<div class="disc-step-head">{icon}'
-        f'<span class="disc-step-title">{heading}</span></div>'
-        f'{sub}</div></div>',
-        unsafe_allow_html=True,
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -179,52 +149,129 @@ st.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Step 01 — Identity selector
+# Wizard card — identity + location in one unified flow
 # ---------------------------------------------------------------------------
-_disc_step(
-    "01",
-    _PERSON_ICON,
-    "Who&#8217;s driving?",
-    "Choose a returning user to get personalised picks, or start fresh.",
-)
-
 top_users = (
-    interactions["user_id"]
-    .value_counts()
-    .head(50)
-    .index.tolist()
-    if not interactions.empty
-    else []
+    interactions["user_id"].value_counts().head(50).index.tolist()
+    if not interactions.empty else []
 )
 
-id_col1, id_col2 = st.columns([2, 1])
-with id_col1:
-    field_label("MODE")
-    mode = st.radio(
-        "Mode",
-        options=["Returning user", "New user (cold start)"],
-        horizontal=True,
-        label_visibility="collapsed",
-    )
-with id_col2:
-    selected_user_id: str | None = None
-    if mode == "Returning user":
-        if top_users:
-            field_label("PICK A USER")
-            selected_user_id = st.selectbox(
-                "Pick a user",
-                options=top_users,
-                format_func=lambda u: f"{u[:8]}… ({int((interactions['user_id'] == u).sum())} ratings)",
-                label_visibility="collapsed",
-                key="selected_user_id",
-            )
-        else:
-            st.info("No users in interactions yet.")
-    else:
-        st.session_state["selected_user_id"] = None
+_wiz_phase = st.session_state.get("wizard_phase", "choose")
+_wiz_mode  = st.session_state.get("wizard_mode", "returning")
 
-if mode == "Returning user":
-    selected_user_id = st.session_state.get("selected_user_id")
+_CARD_TITLES = {
+    "choose":     "Who&#8217;s driving?",
+    "onboarding": "Tell us your taste",
+    "location":   "Where are you driving from?",
+}
+_STEP_LABELS = {
+    "choose":     "Step 01 &middot; Identity",
+    "onboarding": "Step 01 &middot; New User",
+    "location":   "Step 02 &middot; Location",
+}
+
+# Unique keyframe name per phase forces browser to replay animation on every transition
+_anim_id = f"wiz_{_wiz_phase}"
+st.markdown(
+    f"<style>"
+    f"@keyframes {_anim_id}{{from{{opacity:0;transform:translateY(8px)}}to{{opacity:1;transform:translateY(0)}}}}"
+    f"[data-testid='stVerticalBlockBorderWrapper']{{animation:{_anim_id} 0.28s cubic-bezier(0.22,0.61,0.36,1) both}}"
+    f"</style>",
+    unsafe_allow_html=True,
+)
+
+# Back button lives above the card for the onboarding phase (matches Cold Start design)
+if _wiz_phase == "onboarding":
+    _back_col, _ = st.columns([1, 5])
+    with _back_col:
+        if st.button("← Back", key="wiz_back_ob"):
+            st.session_state["wizard_phase"] = "choose"
+            st.session_state.pop("cold_start_profile", None)
+            st.rerun()
+
+with st.container(border=True):
+    # Generic header for choose + location phases; onboarding supplies its own cs-head
+    if _wiz_phase != "onboarding":
+        st.markdown(
+            f'<div class="wizard-card-header-inner">'
+            f'<span class="wizard-card-title">{_CARD_TITLES[_wiz_phase]}</span>'
+            f'<span class="wizard-card-step">{_STEP_LABELS[_wiz_phase]}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    if _wiz_phase == "choose":
+        c_ret, c_new = st.columns(2)
+        with c_ret:
+            st.markdown(
+                '<div class="wizard-choice-card">'
+                '<span class="wizard-choice-icon">&#8617;</span>'
+                '<span class="wizard-choice-label">Returning User</span>'
+                '<span class="wizard-choice-desc">Personalised picks based on your rating history.</span>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Select →", key="wiz_ret", use_container_width=True):
+                st.session_state["wizard_phase"] = "location"
+                st.session_state["wizard_mode"] = "returning"
+                st.rerun()
+        with c_new:
+            st.markdown(
+                '<div class="wizard-choice-card">'
+                '<span class="wizard-choice-icon">&#10024;</span>'
+                '<span class="wizard-choice-label">New User</span>'
+                "<span class=\"wizard-choice-desc\">Tell us your taste and we'll find great nearby spots.</span>"
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Select →", key="wiz_new", use_container_width=True):
+                st.session_state["wizard_phase"] = "onboarding"
+                st.session_state["wizard_mode"] = "new"
+                st.rerun()
+
+    elif _wiz_phase == "onboarding":
+        _ob_profile = render_onboarding()
+        if _ob_profile is not None:
+            st.session_state["wizard_phase"] = "location"
+            st.rerun()
+
+    elif _wiz_phase == "location":
+        _back_col, _ = st.columns([1, 5])
+        with _back_col:
+            if st.button("← Back", key="wiz_back_loc"):
+                st.session_state["wizard_phase"] = "choose"
+                st.session_state.pop("user_location", None)
+                st.session_state.pop("selected_user_id", None)
+                st.rerun()
+        if _wiz_mode == "returning":
+            if top_users:
+                field_label("PICK A USER")
+                st.selectbox(
+                    "Pick a user",
+                    options=top_users,
+                    format_func=lambda u: f"{u[:8]}… ({int((interactions['user_id'] == u).sum())} ratings)",
+                    label_visibility="collapsed",
+                    key="selected_user_id",
+                )
+            else:
+                st.info("No users in interactions yet.")
+        render_location_picker(show_header=False)
+
+# ── Must complete wizard before showing recommendations ──
+if _wiz_phase != "location":
+    st.stop()
+if "user_location" not in st.session_state:
+    empty_state_card(
+        "Pick a location to see recommendations",
+        "Once we know where you are, we'll surface your personalised Top-N restaurants nearby.",
+        icon_src=_ICON_MAP,
+    )
+    st.stop()
+
+lat, lon, src_label = st.session_state["user_location"]
+mode = "New user (cold start)" if _wiz_mode == "new" else "Returning user"
+selected_user_id: str | None = st.session_state.get("selected_user_id")
+profile = st.session_state.get("cold_start_profile")
 
 if mode == "Returning user":
     st.session_state.pop("cold_start_profile", None)
@@ -254,36 +301,6 @@ else:
     banner_kind = "warn"
 
 status_banner(banner_kind, banner_msg)
-
-# ---------------------------------------------------------------------------
-# Onboarding (only when cold)
-# ---------------------------------------------------------------------------
-profile = None
-if mode == "New user (cold start)" or regime == "new":
-    with st.expander("🎯 Tell us your taste (cold-start onboarding)", expanded=True):
-        profile = render_onboarding()
-        if profile is None:
-            st.info("Submit the form above to continue.")
-            st.stop()
-
-# ---------------------------------------------------------------------------
-# Step 02 — Location
-# ---------------------------------------------------------------------------
-_disc_step(
-    "02",
-    _PIN_ICON,
-    "Where are you driving from?",
-    "Three ways to set a starting point. We never store it.",
-)
-loc = render_location_picker(show_header=False)
-if loc is None:
-    empty_state_card(
-        "Pick a location to see recommendations",
-        "Once we know where you are, we'll surface your personalised Top-N restaurants nearby.",
-        icon_src=_ICON_MAP,
-    )
-    st.stop()
-lat, lon, src_label = loc
 
 # ---------------------------------------------------------------------------
 # Sidebar filters

@@ -132,20 +132,20 @@ _ICON_ANALYTICS = _icon_img(_STATIC / "icon-analytics.svg", "Analytics")
 
 nav_cols = st.columns(4)
 nav_cards = [
-    (_ICON_DISCOVER, "Discover",  "Pick a user, set your location, get a personalised Top-N restaurant list."),
-    (_ICON_MAP,      "Map View",  "See recommendations as colour-coded pins on an interactive map."),
-    (_ICON_ADMIN,    "Admin",     "Configure cities, thresholds, and run the full data + training pipeline."),
-    (_ICON_ANALYTICS,"Analytics", "Model comparison table, sentiment distributions, and EDA charts."),
+    (_ICON_DISCOVER,  "Discover",   "Pick a user, set your location, get a personalised Top-N restaurant list.", "./Discover"),
+    (_ICON_MAP,       "Map View",   "See recommendations as colour-coded pins on an interactive map.",          "./Map_View"),
+    (_ICON_ADMIN,     "Admin",      "Configure cities, thresholds, and run the full data + training pipeline.", "./Admin"),
+    (_ICON_ANALYTICS, "Analytics",  "Model comparison table, sentiment distributions, and EDA charts.",         "./Analytics"),
 ]
-for col, (icon, title, blurb) in zip(nav_cols, nav_cards):
+for col, (icon, title, blurb, href) in zip(nav_cols, nav_cards):
     col.markdown(
         f"""
-        <div class="nav-card">
+        <a class="nav-card" href="{href}" target="_self">
           <span class="nav-card-icon">{icon}</span>
           <div class="nav-card-title">{title}</div>
           <div class="nav-card-desc">{blurb}</div>
           <span class="nav-card-arrow">&#8594;</span>
-        </div>
+        </a>
         """,
         unsafe_allow_html=True,
     )

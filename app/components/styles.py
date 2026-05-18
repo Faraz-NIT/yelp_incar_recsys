@@ -390,6 +390,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ---------- Navigation Cards ---------- */
+a.nav-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
 .nav-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -433,6 +439,8 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 500 !important;
     color: var(--text-secondary);
     line-height: 1.6;
+    padding-right: 1.8rem;
+    padding-bottom: 1.2rem;
 }
 
 .nav-card-arrow {
@@ -1115,6 +1123,306 @@ footer { visibility: hidden; }
 [data-testid="stSidebarCollapseButton"]:hover,
 [data-testid="collapsedControl"]:hover {
     opacity: 1;
+}
+
+/* ---------- Wizard card (st.container border=True override) ---------- */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    /* Override Streamlit's own theme variable so inner components inherit white */
+    --background-color: #ffffff;
+    --secondary-background-color: #ffffff;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-card) !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin-top: 2.5rem !important;
+    margin-bottom: 2rem !important;
+}
+/* Force white on every div inside the wrapper that carries a data-testid
+   (covers stLayoutWrapper, stVerticalBlock, stHorizontalBlock, stColumn,
+   stElementContainer, stMarkdown, stMarkdownContainer, stButton, etc.) */
+[data-testid="stVerticalBlockBorderWrapper"] div[data-testid] {
+    background: #ffffff !important;
+}
+/* Also cover the anonymous emotion-cache wrapper divs Streamlit inserts */
+[data-testid="stVerticalBlockBorderWrapper"] > div,
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] > div,
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stLayoutWrapper"] > div,
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stHorizontalBlock"] > div,
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMarkdown"] > div {
+    background: #ffffff !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
+    padding: 0 !important;
+    gap: 0.75rem !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] [data-baseweb="tab-panel"],
+[data-testid="stVerticalBlockBorderWrapper"] [data-baseweb="tab-panel"] > div {
+    background: #ffffff !important;
+}
+.wizard-card-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.8rem 1.05rem 1.8rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+}
+.wizard-card-title {
+    font-size: 1.55rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: "Cormorant Garamond", serif;
+    margin: 0;
+    letter-spacing: 0.01em;
+}
+.wizard-card-step {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-family: "Cormorant Garamond", serif;
+}
+/* inner body padding applied to element-containers after the header */
+[data-testid="stVerticalBlockBorderWrapper"] .element-container {
+    padding: 0 1.6rem !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] .element-container:first-child {
+    padding: 0 !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] .element-container:last-child {
+    padding-bottom: 1.5rem !important;
+}
+@keyframes wizFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.wizard-animate {
+    animation: wizFadeUp 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.wizard-choice-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 0.2rem;
+}
+.wizard-choice-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 1.4rem 1.2rem 1rem 1.2rem;
+    margin-bottom: 0.6rem;
+    transition: border-color 0.18s ease, background 0.18s ease;
+    cursor: default;
+}
+.wizard-choice-card:hover {
+    border-color: rgba(200,85,61,0.4);
+    background: var(--bg-card-hover);
+}
+.wizard-choice-icon {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.55rem;
+    line-height: 1;
+}
+.wizard-choice-label {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: "Cormorant Garamond", serif;
+    margin-bottom: 0.3rem;
+}
+.wizard-choice-desc {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-family: "Cormorant Garamond", serif;
+    line-height: 1.5;
+}
+/* ========== Cold-start onboarding card ========== */
+.cs-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 36px 26px;
+    border-bottom: 1px solid var(--border);
+    background: #ffffff;
+}
+.cs-head-left { flex: 1; min-width: 0; }
+.cs-title {
+    font-family: "Cormorant Garamond", serif !important;
+    font-size: 2.3rem !important;
+    font-weight: 500 !important;
+    line-height: 1.05;
+    margin: 0 0 8px 0 !important;
+    color: var(--text-primary) !important;
+    letter-spacing: 0.005em;
+}
+.cs-accent {
+    color: var(--accent) !important;
+    font-style: italic;
+}
+.cs-subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    font-weight: 400 !important;
+    line-height: 1.5;
+}
+.cs-stepper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.cs-step-dot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+}
+.cs-step-n {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 500;
+    font-family: "Cormorant Garamond", serif;
+    flex-shrink: 0;
+}
+.cs-step-active .cs-step-n {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+.cs-step-active { color: var(--text-primary); }
+.cs-step-label {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-family: "Cormorant Garamond", serif;
+}
+.cs-step-line {
+    width: 32px;
+    height: 1px;
+    background: var(--border);
+    flex-shrink: 0;
+    display: inline-block;
+}
+/* Section headers */
+.cs-sec-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 1rem 0 0.55rem 0;
+    padding-top: 1.1rem;
+    border-top: 1px dashed var(--border);
+}
+.cs-sec-head-first {
+    padding-top: 0.7rem;
+    border-top: none;
+    margin-top: 0.7rem;
+}
+.cs-sec-left { display: flex; align-items: center; gap: 12px; }
+.cs-sec-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-primary);
+}
+.cs-sec-icon svg { width: 16px; height: 16px; }
+.cs-sec-label-txt {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600 !important;
+    font-family: "Cormorant Garamond", serif;
+    display: block;
+    margin-bottom: 2px;
+}
+.cs-req {
+    color: var(--accent);
+    font-style: italic;
+    font-family: "Cormorant Garamond", serif;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    margin-left: 5px;
+    font-weight: 500 !important;
+}
+.cs-sec-h3 {
+    font-family: "Cormorant Garamond", serif !important;
+    font-size: 1.3rem !important;
+    font-weight: 500 !important;
+    line-height: 1.1;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-bottom: none !important;
+    color: var(--text-primary) !important;
+    letter-spacing: 0.01em;
+}
+/* Footer separator + note */
+.cs-foot-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 1.2rem -1.6rem 0 -1.6rem;
+}
+.cs-foot-note {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 0;
+    padding-top: 0.2rem;
+}
+/* Strip any form border/background Streamlit adds */
+[data-testid="stForm"] {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.wizard-confirmed {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 0.9rem;
+    background: rgba(21,94,66,0.05);
+    border: 1px solid rgba(21,94,66,0.18);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-family: "Cormorant Garamond", serif;
+    color: var(--success);
+    font-weight: 500;
+    margin-bottom: 1rem;
 }
 </style>
 """
