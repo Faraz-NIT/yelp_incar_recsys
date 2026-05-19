@@ -160,7 +160,7 @@ class ItemCFRecommender(BaseRecommender):
             cand["score"] = []
             return cand
         raw = self._predict_for_user(user_idx, cand_idx)
-        cand["score"] = (raw - 1.0) / 4.0  # normalise to [0,1]-ish
+        cand["score"] = self.normalize_rating_scores(raw)
         return cand.sort_values("score", ascending=False).head(top_n).reset_index(
             drop=True
         )
@@ -181,7 +181,7 @@ class ItemCFRecommender(BaseRecommender):
         if not cand_idx:
             return out
         raw = self._predict_for_user(user_idx, np.array(cand_idx))
-        out.loc[order] = (raw - 1.0) / 4.0
+        out.loc[order] = self.normalize_rating_scores(raw)
         return out
 
 
@@ -272,7 +272,7 @@ class UserCFRecommender(BaseRecommender):
             [self.item_to_idx[b] for b in cand["business_id"]]
         )
         raw = self._predict_for_user(user_idx, cand_idx)
-        cand["score"] = (raw - 1.0) / 4.0
+        cand["score"] = self.normalize_rating_scores(raw)
         return cand.sort_values("score", ascending=False).head(top_n).reset_index(
             drop=True
         )

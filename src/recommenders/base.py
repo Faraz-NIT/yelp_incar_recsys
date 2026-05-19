@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+import numpy as np
 import pandas as pd
 
 
@@ -38,6 +39,19 @@ class BaseRecommender(ABC):
         top_n: int = 10,
     ) -> pd.DataFrame:
         ...
+
+    @staticmethod
+    def normalize_rating_scores(
+        ratings: pd.Series | np.ndarray | list[float],
+        min_rating: float = 1.0,
+        max_rating: float = 5.0,
+    ) -> np.ndarray:
+        """Map star-scale predictions to the shared [0, 1] score contract."""
+        if max_rating <= min_rating:
+            raise ValueError("max_rating must be greater than min_rating.")
+        arr = np.asarray(ratings, dtype=np.float32)
+        scores = (arr - min_rating) / (max_rating - min_rating)
+        return np.clip(scores, 0.0, 1.0)
 
     def score_pairs(
         self, user_id: str | None, business_ids: list[str]

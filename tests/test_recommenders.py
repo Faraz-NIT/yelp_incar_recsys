@@ -12,6 +12,7 @@ import pytest
 
 from src.config import PipelineConfig
 from src.recommenders import (
+    BaseRecommender,
     ContentBasedRecommender,
     HybridRecommender,
     ItemCFRecommender,
@@ -102,6 +103,7 @@ def test_item_cf(synthetic_data):
     user = synthetic_data["interactions"]["user_id"].iloc[0]
     out = rec.recommend(user, synthetic_data["businesses"], top_n=5)
     assert isinstance(out, pd.DataFrame)
+    assert out["score"].between(0, 1).all()
 
 
 def test_user_cf(synthetic_data):
@@ -111,6 +113,12 @@ def test_user_cf(synthetic_data):
     user = synthetic_data["interactions"]["user_id"].iloc[0]
     out = rec.recommend(user, synthetic_data["businesses"], top_n=5)
     assert isinstance(out, pd.DataFrame)
+    assert out["score"].between(0, 1).all()
+
+
+def test_rating_score_normalization_clips_bounds():
+    scores = BaseRecommender.normalize_rating_scores([0.5, 1.0, 3.0, 5.0, 6.0])
+    assert np.allclose(scores, [0.0, 0.0, 0.5, 1.0, 1.0])
 
 
 def test_matrix_factorization(synthetic_data):
