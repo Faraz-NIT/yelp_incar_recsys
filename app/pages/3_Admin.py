@@ -19,7 +19,7 @@ if str(ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from app.components.styles import inject_css, page_header, sidebar_extras, sidebar_logo, status_banner  # noqa: E402
+from app.components.styles import inject_css, page_header, render_dock, render_topnav, status_banner  # noqa: E402
 from src.config import (  # noqa: E402
     DEFAULT_CONFIG,
     MODELS_DIR,
@@ -36,10 +36,9 @@ from src.pipeline import (  # noqa: E402
 )
 
 
-st.set_page_config(page_title="Admin", page_icon="·", layout="wide")
+st.set_page_config(page_title="Admin", page_icon="·", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
-sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
-sidebar_extras(user_id=st.session_state.get("selected_user_id"))
+render_topnav("admin")
 page_header(
     "Admin",
     "Run the data pipeline and train the recommenders. Power-user only.",
@@ -289,3 +288,5 @@ with st.expander("⚠️ Danger zone — reset artifacts"):
             st.cache_data.clear()
             st.success("Processed data deleted.")
             st.rerun()
+
+render_dock("admin", user_id=st.session_state.get("selected_user_id"))

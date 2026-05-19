@@ -18,31 +18,36 @@ def _svg_b64(name: str) -> str:
         return ""
 
 
-_ICON_DISCOVER = _svg_b64("icon-discover.svg")
-_ICON_MAP      = _svg_b64("icon-mapview.svg")
+def _img_b64(name: str) -> str:
+    p = ROOT / "app" / "static" / name
+    if not p.exists():
+        return ""
+    ext = p.suffix.lstrip(".").lower()
+    mime = "jpeg" if ext in ("jpg", "jpeg") else ext
+    return f"data:image/{mime};base64,{base64.b64encode(p.read_bytes()).decode()}"
+
 
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from app.components.cards import render_recommendations  # noqa: E402
 from app.components.cold_start import render_onboarding  # noqa: E402
-from app.components.filters import apply_hard_filters, render_filter_sidebar  # noqa: E402
+from app.components.filters import apply_hard_filters, render_filter_rail  # noqa: E402
 from app.components.location import render_location_picker  # noqa: E402
 from app.components.styles import (  # noqa: E402
     empty_state_card,
     field_label,
     inject_css,
-    sidebar_extras,
-    sidebar_logo,
+    render_dock,
+    render_topnav,
     status_banner,
 )
 from src.cold_start import (  # noqa: E402
     adjust_weights,
     classify_user,
     filter_by_profile,
-    get_cold_start_explanation,
 )
-from src.config import MODEL_FILES, MODELS_DIR, PROCESSED_DIR, RAW_DIR  # noqa: E402
+from src.config import MODEL_FILES, MODELS_DIR, RAW_DIR  # noqa: E402
 from src.geo import add_distance_column  # noqa: E402
 from src.llm_explain import annotate_recommendations  # noqa: E402
 from src.preprocessing import load_processed  # noqa: E402
@@ -50,12 +55,14 @@ from src.recommenders.hybrid import HybridRecommender, HybridWeights  # noqa: E4
 from src.utils import load_business_photos, load_pickle  # noqa: E402
 
 
-st.set_page_config(page_title="Discover", page_icon="·", layout="wide")
+st.set_page_config(
+    page_title="Discover",
+    page_icon="·",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 inject_css()
-sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
-sidebar_extras(user_id=st.session_state.get("selected_user_id"))
-
-
+render_topnav("discover")
 
 
 # ---------------------------------------------------------------------------
@@ -88,8 +95,8 @@ def _load_photo_map() -> dict:
     return load_business_photos(RAW_DIR)
 
 
-data    = _load_data()
-models  = _load_models()
+data       = _load_data()
+models     = _load_models()
 photo_map  = _load_photo_map()
 photos_dir = RAW_DIR / "photos"
 
@@ -106,42 +113,28 @@ interactions = data.get("interactions", pd.DataFrame(columns=["user_id", "busine
 reviews      = data.get("reviews")
 
 # ---------------------------------------------------------------------------
-# Hero card
+# Page header
 # ---------------------------------------------------------------------------
-n_biz_fmt = f"{len(businesses):,}"
-hero_b64  = _svg_b64("hero.svg")
-
+n_biz_fmt   = f"{len(businesses):,}"
+_food_src   = _img_b64("food-hero.png")
+_food_img   = (
+    f'<img src="{_food_src}" alt="" class="disc-ph-food" />'
+    if _food_src else ""
+)
 st.markdown(
     f"""
-    <div class="hero-card">
-      <div class="hero-left">
-        <div class="page-header-wrap" style="margin-bottom:1rem;">
-          <div class="page-header-badge">
-            <img src="{_ICON_DISCOVER}" alt="Discover"/>
-          </div>
-          <div>
-            <h1 class="page-header-title">Discover</h1>
-            <p class="page-header-subtitle">Find a great place to eat — wherever you are right now.</p>
-          </div>
-        </div>
-        <div class="disc-metrics">
-          <div>
-            <div class="disc-metric-val">{n_biz_fmt}</div>
-            <div class="disc-metric-label">PLACES INDEXED</div>
-          </div>
-          <div>
-            <div class="disc-metric-val">36 <span class="disc-metric-unit">mi</span></div>
-            <div class="disc-metric-label">DEFAULT RADIUS</div>
-          </div>
-          <div>
-            <div class="disc-metric-val">4.6<span class="disc-metric-unit">s</span></div>
-            <div class="disc-metric-label">MEDIAN LATENCY</div>
-          </div>
-        </div>
+    <div class="disc-ph">
+      <div>
+        <h1 class="disc-ph-title">Discover <i>along the way.</i></h1>
+        <p class="disc-ph-sub">
+          {n_biz_fmt} restaurants indexed &middot;
+          personalised, distance-aware, hybrid scoring.
+        </p>
       </div>
-      <div class="hero-right">
-        <img src="{hero_b64}" class="hero-img" alt="Discover illustration"/>
-        <span class="disc-pick-badge">#1 pick</span>
+      {_food_img}
+      <div class="disc-ph-actions">
+        <a class="disc-btn-ghost" href="./Map_View" target="_self">&#128506; Map View</a>
+        <a class="disc-btn-accent" href="./Analytics" target="_self">Analytics &#8594;</a>
       </div>
     </div>
     """,
@@ -149,7 +142,7 @@ st.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Wizard card — identity + location in one unified flow
+# Wizard — identity + location
 # ---------------------------------------------------------------------------
 top_users = (
     interactions["user_id"].value_counts().head(50).index.tolist()
@@ -170,7 +163,6 @@ _STEP_LABELS = {
     "location":   "Step 02 &middot; Location",
 }
 
-# Unique keyframe name per phase forces browser to replay animation on every transition
 _anim_id = f"wiz_{_wiz_phase}"
 st.markdown(
     f"<style>"
@@ -180,34 +172,29 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Back button lives above the card for the onboarding phase (matches Cold Start design)
-if _wiz_phase == "onboarding":
-    _back_col, _ = st.columns([1, 5])
-    with _back_col:
-        if st.button("← Back", key="wiz_back_ob"):
-            st.session_state["wizard_phase"] = "choose"
-            st.session_state.pop("cold_start_profile", None)
-            st.rerun()
-
 with st.container(border=True):
-    # Generic header for choose + location phases; onboarding supplies its own cs-head
-    if _wiz_phase != "onboarding":
-        st.markdown(
-            f'<div class="wizard-card-header-inner">'
-            f'<span class="wizard-card-title">{_CARD_TITLES[_wiz_phase]}</span>'
-            f'<span class="wizard-card-step">{_STEP_LABELS[_wiz_phase]}</span>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
 
     if _wiz_phase == "choose":
+        # ── Header ──────────────────────────────────────────────────────────
+        st.markdown(
+            '<div class="wiz-title-bar">'
+            '<h2 class="wiz-hdr-title">Who&rsquo;s driving?</h2>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        # ── Two choice columns ───────────────────────────────────────────────
         c_ret, c_new = st.columns(2)
         with c_ret:
             st.markdown(
-                '<div class="wizard-choice-card">'
-                '<span class="wizard-choice-icon">&#8617;</span>'
-                '<span class="wizard-choice-label">Returning User</span>'
-                '<span class="wizard-choice-desc">Personalised picks based on your rating history.</span>'
+                '<div class="wiz-card">'
+                '<span class="wiz-card-icon">&#8617;</span>'
+                '<div class="wiz-card-title">Returning user</div>'
+                '<div class="wiz-card-desc">Personalised picks based on your rating history.</div>'
+                '<div class="wiz-tags">'
+                '<span class="wiz-tag wiz-tag-hot">Hybrid Model</span>'
+                '<span class="wiz-tag">Collaborative Filtering</span>'
+                '<span class="wiz-tag">~120ms</span>'
+                '</div>'
                 '</div>',
                 unsafe_allow_html=True,
             )
@@ -217,10 +204,15 @@ with st.container(border=True):
                 st.rerun()
         with c_new:
             st.markdown(
-                '<div class="wizard-choice-card">'
-                '<span class="wizard-choice-icon">&#10024;</span>'
-                '<span class="wizard-choice-label">New User</span>'
-                "<span class=\"wizard-choice-desc\">Tell us your taste and we'll find great nearby spots.</span>"
+                '<div class="wiz-card">'
+                '<span class="wiz-card-icon">&#10022;</span>'
+                '<div class="wiz-card-title">New user</div>'
+                "<div class=\"wiz-card-desc\">Tell us your taste and we'll find great nearby spots.</div>"
+                '<div class="wiz-tags">'
+                '<span class="wiz-tag">Cold Start</span>'
+                '<span class="wiz-tag">Content + Popularity</span>'
+                '<span class="wiz-tag">3 Quick Questions</span>'
+                '</div>'
                 '</div>',
                 unsafe_allow_html=True,
             )
@@ -228,16 +220,42 @@ with st.container(border=True):
                 st.session_state["wizard_phase"] = "onboarding"
                 st.session_state["wizard_mode"] = "new"
                 st.rerun()
+        # ── Progress footer ──────────────────────────────────────────────────
+        st.markdown(
+            '<div class="wiz-footer">'
+            '<span class="wiz-prog-label">Progress</span>'
+            '<div class="wiz-prog-track"><div class="wiz-prog-fill"></div></div>'
+            '<div class="wiz-steps">'
+            '<span class="wiz-step on">01 Identity</span>'
+            '<span class="wiz-step">02 Location</span>'
+            '<span class="wiz-step">03 Taste</span>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
     elif _wiz_phase == "onboarding":
+        _back_col, _ = st.columns([1, 5])
+        with _back_col:
+            if st.button("← Back", key="wiz_back_ob"):
+                st.session_state["wizard_phase"] = "choose"
+                st.session_state.pop("cold_start_profile", None)
+                st.rerun()
         _ob_profile = render_onboarding()
         if _ob_profile is not None:
             st.session_state["wizard_phase"] = "location"
             st.rerun()
 
     elif _wiz_phase == "location":
-        _back_col, _ = st.columns([1, 5])
-        with _back_col:
+        st.markdown(
+            f'<div class="wizard-card-header-inner">'
+            f'<span class="wizard-card-title">{_CARD_TITLES["location"]}</span>'
+            f'<span class="wizard-card-step">{_STEP_LABELS["location"]}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        _back_col2, _ = st.columns([1, 5])
+        with _back_col2:
             if st.button("← Back", key="wiz_back_loc"):
                 st.session_state["wizard_phase"] = "choose"
                 st.session_state.pop("user_location", None)
@@ -257,240 +275,272 @@ with st.container(border=True):
                 st.info("No users in interactions yet.")
         render_location_picker(show_header=False)
 
-# ── Must complete wizard before showing recommendations ──
+if _wiz_phase == "choose":
+    st.markdown(
+        '<div class="wiz-hints">'
+        '<span>&#8593; to switch &middot; &#8629; to select'
+        ' &middot; We never store your location.</span>'
+        '<a href="./" target="_self">Back to home</a>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
 if _wiz_phase != "location":
     st.stop()
 if "user_location" not in st.session_state:
     empty_state_card(
         "Pick a location to see recommendations",
         "Once we know where you are, we'll surface your personalised Top-N restaurants nearby.",
-        icon_src=_ICON_MAP,
+        icon_src=_svg_b64("icon-mapview.svg"),
     )
     st.stop()
 
 lat, lon, src_label = st.session_state["user_location"]
-mode = "New user (cold start)" if _wiz_mode == "new" else "Returning user"
+_wiz_mode = st.session_state.get("wizard_mode", "returning")
 selected_user_id: str | None = st.session_state.get("selected_user_id")
 profile = st.session_state.get("cold_start_profile")
 
-if mode == "Returning user":
+if _wiz_mode == "returning":
     st.session_state.pop("cold_start_profile", None)
+    profile = None
 
 threshold = 3
 regime    = classify_user(selected_user_id, interactions, threshold=threshold)
 n_history = int((interactions["user_id"] == selected_user_id).sum()) if selected_user_id else 0
 
 if regime == "established":
-    banner_msg = (
+    _banner_msg  = (
         f"{n_history} ratings on record — "
         f'<em style="color:var(--accent)">full hybrid model</em>'
         f" with collaborative filtering at the centre."
     )
-    banner_kind = "ok"
+    _banner_kind = "ok"
 elif regime == "light":
-    banner_msg = (
+    _banner_msg  = (
         f"Only {n_history} ratings in history — blending your stated "
         "preferences with collaborative filtering."
     )
-    banner_kind = "warn"
+    _banner_kind = "warn"
 else:
-    banner_msg = (
-        "No rating history found — using your stated cuisine preferences "
+    _banner_msg  = (
+        "No rating history found — using stated cuisine preferences "
         "plus the most popular nearby restaurants."
     )
-    banner_kind = "warn"
-
-status_banner(banner_kind, banner_msg)
-
-# ---------------------------------------------------------------------------
-# Sidebar filters
-# ---------------------------------------------------------------------------
-filters = render_filter_sidebar(
-    businesses,
-    default_radius=profile.radius_km if profile else 5.0,
-)
-use_llm = st.sidebar.checkbox(
-    "Use Claude for the 'why' text",
-    value=False,
-    help="If GROQ_API_KEY is set, asks the LLM for a one-line rationale "
-    "per recommendation. Falls back to a template otherwise.",
-)
+    _banner_kind = "warn"
 
 _MODEL_LABELS: dict[str, str] = {
-    "hybrid":        "🔀 Hybrid (recommended)",
-    "popularity":    "🏆 Popularity",
-    "content_based": "🎯 Content-based",
-    "item_cf":       "👥 Item-CF",
-    "user_cf":       "🤝 User-CF",
-    "matrix_fact":   "🧮 Matrix Factorization",
+    "hybrid":        "Hybrid (recommended)",
+    "popularity":    "Popularity",
+    "content_based": "Content-based",
+    "item_cf":       "Item-CF",
+    "user_cf":       "User-CF",
+    "matrix_fact":   "Matrix Factorization",
 }
-st.sidebar.markdown(
-    '<p style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;'
-    'color:#b7b1c6;text-transform:uppercase;margin:1.2rem 0 0.3rem 0;">MODEL</p>',
-    unsafe_allow_html=True,
-)
-selected_model_key: str = st.sidebar.selectbox(  # type: ignore[assignment]
-    "Recommender model",
-    options=list(_MODEL_LABELS.keys()),
-    format_func=lambda k: _MODEL_LABELS[k],
-    index=0,
-    key="selected_model_key",
-    label_visibility="collapsed",
-    help="Swap the active scoring engine. Models that need user history fall back to Popularity for cold-start users.",
-)
+
+# Read model + llm toggle from session state (set by widgets rendered below)
+_sel_model_key: str = st.session_state.get("selected_model_key", "hybrid")
+_use_llm: bool = st.session_state.get("_disc_use_llm", False)
 
 # ---------------------------------------------------------------------------
-# Build candidate set
+# 3-column layout
 # ---------------------------------------------------------------------------
+col_f, col_c, col_r = st.columns([1.1, 3.2, 1.5], gap="large")
+
+# ── Left: filter rail ──────────────────────────────────────────────────────
+with col_f:
+    filters = render_filter_rail(
+        businesses,
+        default_radius=profile.radius_km if profile else 5.0,
+    )
+
+# ── Build candidate set + score (uses filter values just set) ─────────────
 cand = add_distance_column(businesses, lat, lon)
 if profile is not None:
     cand = filter_by_profile(cand, profile)
 cand = apply_hard_filters(cand, filters)
 
-if cand.empty:
-    st.warning(
-        "No restaurants matched the filters. Try widening the radius or "
-        "relaxing star / price filters."
+recs: pd.DataFrame = pd.DataFrame()
+_model_swapped = False
+weights = None
+active_model = None
+
+if not cand.empty:
+    hybrid_model: HybridRecommender = models["hybrid"]
+    base_weights = HybridWeights(
+        personalized=hybrid_model.weights.personalized,
+        content=hybrid_model.weights.content,
+        popularity=hybrid_model.weights.popularity,
+        distance=hybrid_model.weights.distance,
     )
-    st.stop()
+    weights = adjust_weights(base_weights, regime)
 
-# ---------------------------------------------------------------------------
-# Score
-# ---------------------------------------------------------------------------
-hybrid: HybridRecommender = models["hybrid"]
-base_weights = HybridWeights(
-    personalized=hybrid.weights.personalized,
-    content=hybrid.weights.content,
-    popularity=hybrid.weights.popularity,
-    distance=hybrid.weights.distance,
-)
-weights = adjust_weights(base_weights, regime)
+    pref_profile = None
+    if profile is not None and profile.cuisines:
+        pref_profile = models["content_based"].build_preference_profile(profile.cuisines)
 
-pref_profile = None
-if profile is not None and profile.cuisines:
-    pref_profile = models["content_based"].build_preference_profile(profile.cuisines)
+    active_model = models[_sel_model_key]
+    if getattr(active_model, "needs_user_history", True) and not selected_user_id:
+        active_model = models["popularity"]
+        _sel_model_key = "popularity"
+        _model_swapped = True
 
-active_model = models[selected_model_key]
-_model_needs_history = getattr(active_model, "needs_user_history", True)
-if _model_needs_history and not selected_user_id:
-    st.warning(
-        f"**{_MODEL_LABELS[selected_model_key]}** requires a returning user's rating "
-        "history and cannot score a cold-start user. Falling back to Popularity."
-    )
-    active_model = models["popularity"]
-    selected_model_key = "popularity"
+    with st.spinner("Scoring …"):
+        if _sel_model_key == "hybrid":
+            recs = hybrid_model.recommend(
+                user_id=selected_user_id,
+                candidates=cand,
+                top_n=filters.top_n,
+                weights=weights,
+                preference_profile=pref_profile,
+            )
+        elif _sel_model_key == "content_based":
+            recs = active_model.recommend(
+                user_id=selected_user_id,
+                candidates=cand,
+                top_n=filters.top_n,
+                preference_profile=pref_profile,
+            )
+        else:
+            recs = active_model.recommend(
+                user_id=selected_user_id,
+                candidates=cand,
+                top_n=filters.top_n,
+            )
 
-with st.spinner("Scoring restaurants ..."):
-    if selected_model_key == "hybrid":
-        recs = hybrid.recommend(
-            user_id=selected_user_id,
-            candidates=cand,
-            top_n=filters.top_n,
-            weights=weights,
-            preference_profile=pref_profile,
-        )
-    elif selected_model_key == "content_based":
-        recs = active_model.recommend(
-            user_id=selected_user_id,
-            candidates=cand,
-            top_n=filters.top_n,
-            preference_profile=pref_profile,
-        )
+    user_cuisines = (profile.cuisines if profile else filters.cuisines) or None
+    if _use_llm or filters.show_components:
+        with st.spinner("Generating explanations …"):
+            recs = annotate_recommendations(
+                recs,
+                user_cuisines=user_cuisines,
+                reviews_df=reviews,
+                use_llm=_use_llm,
+                max_llm_calls=5,
+            )
     else:
-        recs = active_model.recommend(
-            user_id=selected_user_id,
-            candidates=cand,
-            top_n=filters.top_n,
-        )
-
-user_cuisines = (profile.cuisines if profile else filters.cuisines) or None
-if use_llm or filters.show_components:
-    with st.spinner("Generating explanations ..."):
         recs = annotate_recommendations(
-            recs,
-            user_cuisines=user_cuisines,
-            reviews_df=reviews,
-            use_llm=use_llm,
-            max_llm_calls=5,
+            recs, user_cuisines=user_cuisines, reviews_df=None, use_llm=False,
         )
-else:
-    recs = annotate_recommendations(
-        recs,
-        user_cuisines=user_cuisines,
-        reviews_df=None,
-        use_llm=False,
-    )
 
-# ---------------------------------------------------------------------------
-# Step 03 — Results strip
-# ---------------------------------------------------------------------------
-st.markdown(
-    '<div class="disc-step" style="margin-top:3rem;margin-bottom:0.5rem;">'
-    '<span class="disc-step-num">03</span>'
-    '<div><div class="disc-step-head">'
-    '<span class="disc-step-title">Recommendations</span>'
-    '</div></div></div>',
-    unsafe_allow_html=True,
-)
-
-mc1, mc2, mc3, mc4, mc5 = st.columns(5)
-mc1.metric("Candidates", len(cand))
-mc2.metric("Returned", len(recs))
-if selected_model_key == "hybrid":
-    mc3.metric(
-        "Personalised w.", f"{weights.personalized:.2f}",
-        delta=f"{weights.personalized - base_weights.personalized:+.2f}",
-    )
-    mc4.metric("Content w.", f"{weights.content:.2f}")
-else:
-    mc3.metric("Model", _MODEL_LABELS[selected_model_key])
-    mc4.metric(
-        "Personalised",
-        "Yes" if not getattr(active_model, "needs_user_history", True) is False
-        else str(bool(selected_user_id)),
-    )
-mc5.metric("From", src_label, help=f"Lat {lat:.4f}, Lon {lon:.4f}")
-
-st.session_state["last_recs"]      = recs
+st.session_state["last_recs"]      = recs if not recs.empty else None
 st.session_state["last_center"]    = (lat, lon)
 st.session_state["last_radius_km"] = filters.radius_km
 
-render_recommendations(
-    recs,
-    show_components=filters.show_components,
-    photo_map=photo_map,
-    photos_dir=photos_dir,
-)
+n_results   = len(recs)
+sort_label  = _MODEL_LABELS.get(_sel_model_key, _sel_model_key)
 
-# ---------------------------------------------------------------------------
-# Diagnostic expander
-# ---------------------------------------------------------------------------
-with st.expander("🔬 Under the hood"):
-    if selected_model_key == "hybrid":
-        st.write("**Active hybrid weights** (after cold-start adjustment):")
-        st.json(
-            {
+# ── Center: results list ───────────────────────────────────────────────────
+with col_c:
+    status_banner(_banner_kind, _banner_msg)
+
+    if _model_swapped:
+        st.info(
+            f"**{_MODEL_LABELS.get(st.session_state.get('selected_model_key','hybrid'))}** "
+            "needs user history — fell back to Popularity."
+        )
+
+    st.markdown(
+        f"""
+        <div class="disc-list-head">
+          <h2 class="disc-list-title">{n_results} places <i>on your route</i></h2>
+          <div class="disc-list-sort">
+            sorted by
+            <span class="disc-sort-pill">{sort_label}</span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    _sm1, _sm2, _ = st.columns([3, 2, 1])
+    with _sm1:
+        st.selectbox(
+            "Model",
+            options=list(_MODEL_LABELS.keys()),
+            format_func=lambda k: _MODEL_LABELS[k],
+            key="selected_model_key",
+            label_visibility="collapsed",
+        )
+    with _sm2:
+        st.checkbox(
+            "Claude 'why' text",
+            value=False,
+            key="_disc_use_llm",
+            help="If GROQ_API_KEY is set, asks Claude for a one-line rationale.",
+        )
+
+    if cand.empty:
+        st.warning(
+            "No restaurants matched the filters. Try widening the radius or "
+            "relaxing star / price filters."
+        )
+    elif recs.empty:
+        st.warning("Scoring returned no results.")
+    else:
+        render_recommendations(
+            recs,
+            show_components=filters.show_components,
+            photo_map=photo_map,
+            photos_dir=photos_dir,
+        )
+
+    with st.expander("🔬 Under the hood"):
+        if _sel_model_key == "hybrid" and weights is not None:
+            st.write("**Active hybrid weights** (after cold-start adjustment):")
+            st.json({
                 "personalised": round(weights.personalized, 3),
                 "content":      round(weights.content, 3),
                 "popularity":   round(weights.popularity, 3),
                 "distance":     round(weights.distance, 3),
-            }
+            })
+        else:
+            st.write(f"**Active model:** {_MODEL_LABELS[_sel_model_key]}")
+        st.write(
+            f"User regime: `{regime}` · history: `{n_history}` · "
+            f"candidates: `{len(cand)}` within {filters.radius_km} km"
         )
-    else:
-        st.write(f"**Active model:** {_MODEL_LABELS[selected_model_key]}")
-        st.write(f"Needs user history: `{getattr(active_model, 'needs_user_history', True)}`")
-    st.write(
-        f"User regime: `{regime}` · history ratings: `{n_history}` · "
-        f"candidate set: `{len(cand)}` restaurants within {filters.radius_km} km"
+        if not recs.empty and {
+            "personalised_score", "content_score", "popularity_score", "distance_score"
+        }.issubset(recs.columns):
+            st.dataframe(
+                recs[[
+                    "name", "personalised_score", "content_score",
+                    "popularity_score", "distance_score", "score",
+                ]].round(3),
+                use_container_width=True,
+            )
+
+# ── Right: now-driving card ────────────────────────────────────────────────
+with col_r:
+    city_label = src_label or f"{lat:.3f}, {lon:.3f}"
+    radius_disp = f"{filters.radius_km:.0f}"
+    st.markdown(
+        f"""
+        <div class="disc-nd-card">
+          <div class="disc-nd-label">Now Driving</div>
+          <div class="disc-nd-route">
+            {city_label}
+            <span class="disc-nd-arrow">&#8594;</span>
+            Nearby
+          </div>
+          <div class="disc-nd-stats">
+            <div class="disc-nd-s">
+              <b>{len(cand)}</b>
+              <small>Candidates</small>
+            </div>
+            <div class="disc-nd-s">
+              <b>{radius_disp}<span style="font-size:.75em;margin-left:1px">km</span></b>
+              <small>Radius</small>
+            </div>
+            <div class="disc-nd-s">
+              <b>{n_results}</b>
+              <small>Results</small>
+            </div>
+          </div>
+        </div>
+        <a class="disc-nd-map-link" href="./Map_View" target="_self">&#128506; View on map &#8594;</a>
+        """,
+        unsafe_allow_html=True,
     )
-    if not recs.empty and {"personalised_score", "content_score", "popularity_score", "distance_score"}.issubset(
-        recs.columns
-    ):
-        st.write("**Component scores** for the Top-N:")
-        st.dataframe(
-            recs[
-                ["name", "personalised_score", "content_score",
-                 "popularity_score", "distance_score", "score"]
-            ].round(3),
-            use_container_width=True,
-        )
+
+render_dock("discover", user_id=st.session_state.get("selected_user_id"))

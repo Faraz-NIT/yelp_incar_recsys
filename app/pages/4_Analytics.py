@@ -14,15 +14,14 @@ import plotly.express as px  # noqa: E402
 import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from app.components.styles import inject_css, page_header, sidebar_extras, sidebar_logo, status_banner  # noqa: E402
+from app.components.styles import inject_css, page_header, render_dock, render_topnav, status_banner  # noqa: E402
 from src.config import MODELS_DIR  # noqa: E402
 from src.preprocessing import load_processed  # noqa: E402
 
 
-st.set_page_config(page_title="Analytics", page_icon="·", layout="wide")
+st.set_page_config(page_title="Analytics", page_icon="·", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
-sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
-sidebar_extras(user_id=st.session_state.get("selected_user_id"))
+render_topnav("analytics")
 page_header("Analytics", "How the data and models actually behave.")
 
 
@@ -333,3 +332,5 @@ if (
     st.caption(
         f"{len(geo_df):,} restaurants plotted. Hotspots indicate dense neighbourhoods."
     )
+
+render_dock("analytics", user_id=st.session_state.get("selected_user_id"))

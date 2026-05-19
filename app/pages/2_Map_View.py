@@ -11,13 +11,12 @@ if str(ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from app.components.styles import inject_css, page_header, sidebar_extras, sidebar_logo, status_banner  # noqa: E402
+from app.components.styles import inject_css, page_header, render_dock, render_topnav, status_banner  # noqa: E402
 
 
-st.set_page_config(page_title="Map View", page_icon="·", layout="wide")
+st.set_page_config(page_title="Map View", page_icon="·", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
-sidebar_logo(ROOT / "app" / "static" / "mcgill_logo.png")
-sidebar_extras(user_id=st.session_state.get("selected_user_id"))
+render_topnav("map")
 page_header("Map View", "Where the recommendations actually are.")
 
 
@@ -165,3 +164,5 @@ st.dataframe(
     ),
     use_container_width=True,
 )
+
+render_dock("map", user_id=st.session_state.get("selected_user_id"))
