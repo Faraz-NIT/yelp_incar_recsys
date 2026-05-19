@@ -63,7 +63,7 @@ section[data-testid="stSidebar"] > div {
 [data-testid="stSidebarNav"]::before {
     content: "PAGES";
     display: block;
-    font-size: 0.60rem;
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.14em;
     color: var(--text-muted);
@@ -87,7 +87,7 @@ section[data-testid="stSidebar"] > div {
     padding: 0.52rem 0.75rem !important;
     border-radius: 8px !important;
     color: var(--text-secondary) !important;
-    font-size: 1rem !important;
+    font-size: 1.35rem !important;
     font-weight: 500 !important;
     font-family: "Cormorant Garamond", serif !important;
     text-decoration: none !important;
@@ -110,7 +110,7 @@ section[data-testid="stSidebar"] > div {
 
 /* ---------- Sidebar workspace section ---------- */
 .sidebar-group-label {
-    font-size: 0.60rem;
+    font-size: 0.75rem;
     font-weight: 700 !important;
     letter-spacing: 0.14em;
     color: var(--text-muted);
@@ -130,7 +130,7 @@ section[data-testid="stSidebar"] > div {
     padding: 0.52rem 0.75rem;
     border-radius: 8px;
     color: var(--text-secondary);
-    font-size: 1rem;
+    font-size: 1.15rem;
     font-family: "Cormorant Garamond", serif;
     font-weight: 400;
     cursor: default;
@@ -167,7 +167,7 @@ section[data-testid="stSidebar"] > div {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: 0.60rem;
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     color: var(--text-muted);
@@ -175,7 +175,7 @@ section[data-testid="stSidebar"] > div {
 }
 
 .sidebar-status-val {
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
     font-style: italic;
     font-family: "Cormorant Garamond", serif;
@@ -203,7 +203,7 @@ section[data-testid="stSidebar"] > div {
     border-radius: 50%;
     background: var(--accent);
     color: #fff;
-    font-size: 0.68rem;
+    font-size: 0.78rem;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -214,7 +214,7 @@ section[data-testid="stSidebar"] > div {
 }
 
 .sidebar-user-name {
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     font-weight: 500;
     color: var(--text-primary);
     font-family: "Cormorant Garamond", serif;
@@ -225,7 +225,7 @@ section[data-testid="stSidebar"] > div {
 }
 
 .sidebar-user-role {
-    font-size: 0.58rem;
+    font-size: 0.70rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     color: var(--text-muted);
@@ -1108,6 +1108,7 @@ a.sidebar-ws-item {
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 .stDeployButton { display: none; }
+
 
 /* Hide sidebar collapse button icon text (Material Symbols ligature fallback) */
 [data-testid="stSidebarCollapseButton"] span,
