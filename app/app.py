@@ -15,7 +15,7 @@ from app.components.styles import inject_css, render_dock, render_topnav  # noqa
 from src.pipeline import has_processed_data, has_trained_models  # noqa: E402
 
 st.set_page_config(
-    page_title="Pitstop · Hunger, rerouted.",
+    page_title="Pitstop · Drive. Discover.",
     page_icon="·",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -67,10 +67,6 @@ st.markdown(
 
       <div class="ps-hero-stack">
         {_food_html}
-        <h1 class="ps-headline">
-          <span class="row1">Hunger,</span>
-          <span class="row2">rerouted.</span>
-        </h1>
         <div class="ps-subline-wrap">
           <div class="ps-dashed"></div>
           <p class="ps-subline">Fast &middot; local &middot; routed live from your dashboard.</p>

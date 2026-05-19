@@ -85,8 +85,15 @@ def _load_models() -> dict:
     return models
 
 
+def _processed_mtime() -> float:
+    from src.config import BUSINESS_PARQUET, INTERACTION_PARQUET, PROCESSED_DIR, REVIEW_PARQUET
+    files = [PROCESSED_DIR / f for f in (REVIEW_PARQUET, BUSINESS_PARQUET, INTERACTION_PARQUET)]
+    mtimes = [f.stat().st_mtime for f in files if f.exists()]
+    return max(mtimes) if mtimes else 0.0
+
+
 @st.cache_data(show_spinner=False)
-def _load_data() -> dict[str, pd.DataFrame]:
+def _load_data(mtime: float) -> dict[str, pd.DataFrame]:  # noqa: ARG001
     return load_processed()
 
 
@@ -95,7 +102,7 @@ def _load_photo_map() -> dict:
     return load_business_photos(RAW_DIR)
 
 
-data       = _load_data()
+data       = _load_data(_processed_mtime())
 models     = _load_models()
 photo_map  = _load_photo_map()
 photos_dir = RAW_DIR / "photos"
@@ -422,9 +429,17 @@ if not cand.empty:
             recs, user_cuisines=user_cuisines, reviews_df=None, use_llm=False,
         )
 
-st.session_state["last_recs"]      = recs if not recs.empty else None
-st.session_state["last_center"]    = (lat, lon)
-st.session_state["last_radius_km"] = filters.radius_km
+# Persist to disk — HTML link navigation starts a new Streamlit session so
+# session_state doesn't survive cross-page navigation via <a> tags.
+_RECS_CACHE = ROOT / "app" / "static" / "_last_recs.pkl"
+if not recs.empty:
+    import pickle as _pickle
+    _RECS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+    with open(_RECS_CACHE, "wb") as _f:
+        _pickle.dump({"recs": recs, "center": (lat, lon), "radius_km": filters.radius_km}, _f)
+    st.session_state["last_recs"]      = recs
+    st.session_state["last_center"]    = (lat, lon)
+    st.session_state["last_radius_km"] = filters.radius_km
 
 n_results   = len(recs)
 sort_label  = _MODEL_LABELS.get(_sel_model_key, _sel_model_key)

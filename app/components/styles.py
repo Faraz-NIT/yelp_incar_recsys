@@ -1,7 +1,20 @@
 """Custom CSS and theme injection — PITSTOP design system."""
 from __future__ import annotations
 
+import base64
+from pathlib import Path
+
 import streamlit as st
+
+_STATIC = Path(__file__).resolve().parents[1] / "static"
+
+
+def _logo_src() -> str:
+    p = _STATIC / "mcgill_logo.png"
+    if not p.exists():
+        return ""
+    data = base64.b64encode(p.read_bytes()).decode()
+    return f"data:image/png;base64,{data}"
 
 
 GLOBAL_CSS = """
@@ -59,12 +72,18 @@ h1, h2, h3, h4, h5, h6, p, span, div, label, button, input, select, textarea {
 }
 
 /* ---------- App shell ---------- */
-.stApp {
+/* Grid lives on body (fixed to viewport). .stApp is transparent so opaque
+   white cards naturally block the grid — no child patching needed. */
+html, body {
   background:
     linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 28px 28px,
     linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 28px 28px,
     var(--bg) !important;
-  background-attachment: scroll !important;
+  background-attachment: fixed !important;
+}
+
+.stApp {
+  background: transparent !important;
   color: var(--ink) !important;
   -webkit-font-smoothing: antialiased;
 }
@@ -489,6 +508,7 @@ a.nav-card { display: block; text-decoration: none; color: inherit; }
 .status-banner.ok   { border-left-color: var(--green); background: var(--green-soft); }
 .status-banner.warn { border-left-color: var(--amber); background: var(--amber-soft); }
 .status-banner.err  { border-left-color: var(--red);   background: var(--red-soft); }
+.status-banner.info { border-left-color: var(--blue);  background: var(--blue-soft); }
 
 /* ---------- Buttons ---------- */
 .stButton > button,
@@ -704,40 +724,27 @@ details summary p {
   height: 1px; background: var(--line); margin: 1.5rem 0; border: none;
 }
 
-/* ---------- Wizard card ---------- */
+/* ---------- Bordered containers (st.container with border=True) ---------- */
 [data-testid="stVerticalBlockBorderWrapper"] {
   --background-color: #ffffff;
   --secondary-background-color: #ffffff;
-  background: #ffffff !important; background-color: #ffffff !important;
+  background: #ffffff !important;
   border: 1px solid var(--line) !important;
   border-radius: var(--radius) !important;
   box-shadow: var(--shadow-card) !important;
   overflow: hidden !important; padding: 0 !important;
   margin-top: 2rem !important; margin-bottom: 1.5rem !important;
 }
-[data-testid="stVerticalBlockBorderWrapper"] div[data-testid] { background: #ffffff !important; }
-[data-testid="stVerticalBlockBorderWrapper"] > div,
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] > div,
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stLayoutWrapper"] > div,
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stHorizontalBlock"] > div,
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMarkdown"] > div {
-  background: #ffffff !important;
-}
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stHorizontalBlock"],
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stColumn"],
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] {
-  background: #ffffff !important;
-  background-image: none !important;
-}
-[data-testid="stVerticalBlockBorderWrapper"] div:not(button):not([class*="stButton"]) {
+/* Since body carries the grid, transparent div children inside the white card
+   still show the grid. Nuke background-image and force white on all divs/sections
+   inside. Buttons/spans/SVGs are excluded so their colors survive. */
+[data-testid="stVerticalBlockBorderWrapper"] div,
+[data-testid="stVerticalBlockBorderWrapper"] section {
+  background-color: #ffffff !important;
   background-image: none !important;
 }
 [data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
   padding: 0 !important; gap: .75rem !important;
-}
-[data-testid="stVerticalBlockBorderWrapper"] [data-baseweb="tab-panel"],
-[data-testid="stVerticalBlockBorderWrapper"] [data-baseweb="tab-panel"] > div {
-  background: #ffffff !important;
 }
 
 .wizard-card-header-inner {
@@ -1121,6 +1128,12 @@ details summary p {
   box-shadow: 0 0 0 3px var(--accent-soft);
   flex-shrink: 0;
 }
+.ps-topnav-logo {
+  height: 28px; width: auto; object-fit: contain; display: block;
+}
+.ps-dock-logo {
+  height: 32px; width: auto; object-fit: contain; display: block;
+}
 .ps-topnav-links {
   display: flex; gap: 30px; justify-self: center;
   font-family: var(--sans) !important; font-size: 14px;
@@ -1178,6 +1191,19 @@ details summary p {
 }
 .ps-headline .row1 { display: block; font-size: inherit !important; font-family: inherit !important; }
 .ps-headline .row2 { display: block; font-style: italic; color: var(--ink-2); font-size: inherit !important; font-family: inherit !important; }
+
+.ps-cursor {
+  font-style: normal !important;
+  font-weight: 200 !important;
+  color: var(--accent) !important;
+  margin-left: 3px;
+  animation: blink-cursor .8s step-end infinite;
+  display: inline !important;
+}
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
 .stMarkdown .ps-headline,
 [data-testid="stMarkdownContainer"] .ps-headline {
   font-size: 150px !important;
@@ -1203,7 +1229,7 @@ details summary p {
 
 .ps-subline-wrap {
   position: relative; z-index: 2;
-  margin-top: clamp(18px, 3.5vw, 50px);
+  margin-top: clamp(420px, 48vw, 620px);
   width: min(860px, 88%);
   display: flex; flex-direction: column; align-items: center; gap: 16px;
 }
@@ -1267,7 +1293,7 @@ def page_header(title: str, subtitle: str = "") -> None:
 
 
 def status_banner(kind: str, message: str) -> None:
-    cls = {"ok": "ok", "warn": "warn", "err": "err"}.get(kind, "")
+    cls = {"ok": "ok", "warn": "warn", "err": "err", "info": "info"}.get(kind, "")
     st.markdown(f'<div class="status-banner {cls}">{message}</div>', unsafe_allow_html=True)
 
 
@@ -1294,15 +1320,16 @@ def render_topnav(current_page: str = "app") -> None:
 
     links_html = "\n".join(_link(pid, lbl, href) for pid, lbl, href in _nav_pages)
 
+    _logo = _logo_src()
+    brand_html = (
+        f'<img src="{_logo}" alt="McGill" class="ps-topnav-logo" />'
+        if _logo else '<span class="dot"></span>Pitstop'
+    )
     st.markdown(
         f"""
         <nav class="ps-topnav">
-          <div class="ps-topnav-brand">
-            <span class="dot"></span>Pitstop
-          </div>
-          <div class="ps-topnav-links">
-            {links_html}
-          </div>
+          <div class="ps-topnav-brand">{brand_html}</div>
+          <div class="ps-topnav-links">{links_html}</div>
           <a class="ps-topnav-cta" href="./Discover" target="_self">Get Started</a>
         </nav>
         """,
@@ -1339,6 +1366,13 @@ def render_dock(
       + _tab("analytics", "./Analytics", '<path d="M4 20V10M10 20V4M16 20V13M22 20H2"/>',                                                                                                                                                                                                                      "Analytics")
     )
 
+    _dock_logo = _logo_src()
+    _dock_brand_html = (
+        f'<img src="{_dock_logo}" alt="McGill" class="ps-dock-logo" />'
+        if _dock_logo
+        else '<div class="ps-brand-mark">P</div><div><b>Pitstop</b><small>v0.4·beta</small></div>'
+    )
+
     yelp_svg = (
         '<svg width="11" height="11" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">'
         '<circle cx="32" cy="32" r="32" fill="#D32323"/>'
@@ -1358,11 +1392,7 @@ def render_dock(
         f"""
         <div class="ps-dock">
           <div class="ps-dg ps-brand">
-            <div class="ps-brand-mark">P</div>
-            <div>
-              <b>Pitstop</b>
-              <small>v0.4 &middot; beta</small>
-            </div>
+            {_dock_brand_html}
           </div>
 
           <div class="ps-dg">

@@ -15,7 +15,7 @@ import plotly.graph_objects as go  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from app.components.styles import inject_css, page_header, render_dock, render_topnav, status_banner  # noqa: E402
-from src.config import MODELS_DIR  # noqa: E402
+from src.config import MODELS_DIR, PROCESSED_DIR, REVIEW_PARQUET  # noqa: E402
 from src.preprocessing import load_processed  # noqa: E402
 
 
@@ -25,12 +25,24 @@ render_topnav("analytics")
 page_header("Analytics", "How the data and models actually behave.")
 
 
+def _processed_mtime() -> float:
+    """Max mtime across processed parquet files — used as a cache-bust key."""
+    from src.config import BUSINESS_PARQUET, INTERACTION_PARQUET
+    files = [
+        PROCESSED_DIR / REVIEW_PARQUET,
+        PROCESSED_DIR / BUSINESS_PARQUET,
+        PROCESSED_DIR / INTERACTION_PARQUET,
+    ]
+    mtimes = [f.stat().st_mtime for f in files if f.exists()]
+    return max(mtimes) if mtimes else 0.0
+
+
 @st.cache_data(show_spinner=False)
-def _load_data() -> dict[str, pd.DataFrame]:
+def _load_data(mtime: float) -> dict[str, pd.DataFrame]:  # noqa: ARG001
     return load_processed()
 
 
-data = _load_data()
+data = _load_data(_processed_mtime())
 if not data:
     status_banner("warn", "No processed data yet. Run the pipeline from Admin.")
     st.stop()
