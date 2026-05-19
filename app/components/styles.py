@@ -72,18 +72,18 @@ h1, h2, h3, h4, h5, h6, p, span, div, label, button, input, select, textarea {
 }
 
 /* ---------- App shell ---------- */
-/* Grid lives on body (fixed to viewport). .stApp is transparent so opaque
-   white cards naturally block the grid — no child patching needed. */
+/* Grid lives on .stApp with default scroll attachment.
+   Any child with background-color: white will naturally block it — no
+   background-attachment:fixed / stacking-context issues. */
 html, body {
+  background: var(--bg) !important;
+}
+
+.stApp {
   background:
     linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 28px 28px,
     linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 28px 28px,
     var(--bg) !important;
-  background-attachment: fixed !important;
-}
-
-.stApp {
-  background: transparent !important;
   color: var(--ink) !important;
   -webkit-font-smoothing: antialiased;
 }
@@ -992,11 +992,11 @@ details summary p {
   height: 300px; width: auto;
   object-fit: contain;
   pointer-events: none;
-  z-index: 0;
+  z-index: 20;
   filter: drop-shadow(0 8px 24px rgba(0,0,0,.12));
 }
-.disc-ph { position: relative; overflow: visible; }
-.disc-ph > div, .disc-ph > a { position: relative; z-index: 1; }
+.disc-ph { position: relative; overflow: visible; z-index: 10; }
+.disc-ph > div, .disc-ph > a { position: relative; z-index: 30; }
 .disc-ph-actions { display: flex; gap: 10px; flex-shrink: 0; align-items: center; }
 .disc-btn-ghost {
   display: inline-flex; align-items: center; gap: 7px;
