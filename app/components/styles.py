@@ -1066,6 +1066,21 @@ details summary p {
   font-size: 1.1rem; font-weight: 600; color: #fff;
   margin-top: 2px; margin-bottom: -4px;
 }
+.disc-user-card{background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.disc-user-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.disc-user-av{width:36px;height:36px;border-radius:50%;
+  background:var(--accent);color:#000;font-weight:700;font-size:15px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.disc-user-nm{font-weight:600;font-size:14px;line-height:1.2}
+.disc-user-since{font-size:11px;color:var(--muted)}
+.disc-user-badge{margin-left:auto;font-size:10px;font-weight:600;
+  padding:2px 7px;border-radius:20px;white-space:nowrap}
+.disc-user-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.disc-user-stat{background:var(--bg);border-radius:8px;padding:8px 10px;text-align:center}
+.disc-user-stat b{display:block;font-size:15px;font-weight:700}
+.disc-user-stat small{font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.04em}
 .disc-nd-route {
   font-family: var(--serif) !important;
   font-size: 1.4rem; font-weight: 400; color: #fff;
