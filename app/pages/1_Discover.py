@@ -383,7 +383,11 @@ if not cand.empty:
 
     pref_profile = None
     if profile is not None and profile.cuisines:
-        pref_profile = models["content_based"].build_preference_profile(profile.cuisines)
+        pref_profile = models["content_based"].build_preference_profile(
+            profile.cuisines,
+            attributes=profile.attributes,
+            price_levels=profile.price_levels,
+        )
 
     active_model = models[_sel_model_key]
     if getattr(active_model, "needs_user_history", True) and not selected_user_id:

@@ -20,6 +20,7 @@ from src.recommenders import (
     PopularityRecommender,
     UserCFRecommender,
 )
+from src.recommenders.content_based import _build_description
 
 
 # ---------------------------------------------------------------------------
@@ -94,6 +95,80 @@ def test_content_recommender(synthetic_data):
     out = rec.recommend(user, synthetic_data["businesses"], top_n=5)
     assert len(out) <= 5
     assert "score" in out.columns
+
+
+def test_content_description_uses_consistent_cold_start_tokens():
+    row = pd.Series(
+        {
+            "categories": "Restaurants, Coffee & Tea, American (New)",
+            "price_level": 2,
+            "outdoor": True,
+            "kids": True,
+        }
+    )
+
+    description = _build_description(row)
+
+    assert "coffee tea" in description
+    assert "coffee_tea" in description
+    assert "american new" in description
+    assert "american_new" in description
+    assert "price_2" in description
+    assert "price_level_2" in description
+    assert "outdoor_seating" in description
+    assert "kid_friendly" in description
+
+
+def test_content_cold_start_profile_uses_attributes_and_price():
+    businesses = pd.DataFrame(
+        [
+            {
+                "business_id": "b_match",
+                "categories": "Restaurants, Italian",
+                "price_level": 2,
+                "takeout": True,
+                "delivery": False,
+                "outdoor": True,
+                "kids": False,
+            },
+            {
+                "business_id": "b_wrong_price",
+                "categories": "Restaurants, Italian",
+                "price_level": 4,
+                "takeout": False,
+                "delivery": False,
+                "outdoor": False,
+                "kids": False,
+            },
+            {
+                "business_id": "b_wrong_cuisine",
+                "categories": "Restaurants, Japanese",
+                "price_level": 2,
+                "takeout": False,
+                "delivery": False,
+                "outdoor": True,
+                "kids": False,
+            },
+        ]
+    )
+    interactions = pd.DataFrame(columns=["user_id", "business_id", "rating"])
+    rec = ContentBasedRecommender(PipelineConfig()).fit(
+        interactions, businesses=businesses
+    )
+    profile = rec.build_preference_profile(
+        ["Italian"],
+        attributes=["outdoor"],
+        price_levels=[2],
+    )
+
+    out = rec.recommend(
+        user_id=None,
+        candidates=businesses,
+        top_n=3,
+        preference_profile=profile,
+    )
+
+    assert out["business_id"].iloc[0] == "b_match"
 
 
 def test_item_cf(synthetic_data):

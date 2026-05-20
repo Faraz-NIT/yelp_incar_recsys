@@ -9,10 +9,13 @@ compute cosine similarity in one of two modes:
    cosine similarity to that profile (this is the classic Rocchio-style
    approach).
 2. ``user_id`` is None (cold start): the caller supplies a seed list of
-   preferred cuisines via :meth:`set_preferences`. We then build a profile
-   vector from the cuisine tokens directly and rank candidates against it.
+   preferred cuisines, attributes, and price levels via
+   :meth:`build_preference_profile`. We then build a profile vector from those
+   tokens directly and rank candidates against it.
 """
 from __future__ import annotations
+
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -23,27 +26,113 @@ from src.config import ATTRIBUTE_LABELS, PipelineConfig
 from src.recommenders.base import BaseRecommender
 
 
+_ATTRIBUTE_COLUMNS = {
+    "RestaurantsTakeOut": "takeout",
+    "RestaurantsDelivery": "delivery",
+    "RestaurantsReservations": "reservations",
+    "OutdoorSeating": "outdoor",
+    "GoodForKids": "kids",
+    "WheelchairAccessible": "wheelchair",
+}
+
+_ATTRIBUTE_ALIASES = {
+    "takeout": ["takeout", "takeout_available"],
+    "delivery": ["delivery", "delivery_available"],
+    "reservations": ["reservations", "takes_reservations"],
+    "outdoor": ["outdoor", "outdoor_seating"],
+    "kids": ["kids", "kid_friendly", "good_for_kids"],
+    "wheelchair": ["wheelchair", "wheelchair_accessible"],
+}
+
+
+def _dedupe(tokens: Iterable[str]) -> list[str]:
+    """Return tokens in original order without duplicates."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for token in tokens:
+        token = token.strip().lower()
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        out.append(token)
+    return out
+
+
+def _is_true(value: object) -> bool:
+    """Return True for common boolean encodings from processed Yelp data."""
+    if value is True:
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() == "true"
+    return bool(value == 1)
+
+
+def _phrase_tokens(value: object) -> list[str]:
+    """Build raw and underscore-normalised variants for a label."""
+    if value is None:
+        return []
+    text = str(value).replace("&", " ")
+    for ch in ",/()[]{}":
+        text = text.replace(ch, " ")
+    text = " ".join(text.split()).lower()
+    if not text:
+        return []
+    tokens = [text]
+    underscored = text.replace(" ", "_")
+    if underscored != text:
+        tokens.append(underscored)
+    return tokens
+
+
+def _category_tokens(categories: object) -> list[str]:
+    """Create tokens for each Yelp category phrase."""
+    if categories is None:
+        return []
+    return _dedupe(
+        token
+        for category in str(categories).split(",")
+        for token in _phrase_tokens(category)
+    )
+
+
+def _price_tokens(price_level: object) -> list[str]:
+    """Create tokenizer-friendly price tokens for TF-IDF."""
+    if price_level is None or pd.isna(price_level):
+        return []
+    try:
+        level = int(price_level)
+    except (TypeError, ValueError):
+        return []
+    if level <= 0:
+        return []
+    return [f"price_{level}", f"price_level_{level}", f"budget_{level}"]
+
+
+def _preference_price_tokens(price_level: object) -> list[str]:
+    """Create compact price tokens for cold-start preference profiles."""
+    return _price_tokens(price_level)[:2]
+
+
+def _attribute_tokens(attribute: str) -> list[str]:
+    """Create canonical and label-based tokens for a dining attribute."""
+    key = attribute.strip().lower()
+    tokens = list(_ATTRIBUTE_ALIASES.get(key, [key]))
+    tokens.extend(_phrase_tokens(key))
+    return _dedupe(tokens)
+
+
 def _build_description(row: pd.Series) -> str:
     """Construct a description text from the restaurant's structured fields."""
-    cats = (row.get("categories") or "").replace(",", " ")
-    tokens: list[str] = [cats]
-    price = row.get("price_level")
-    if isinstance(price, (int, float)) and not pd.isna(price):
-        tokens.append("price_" + "$" * int(price))
+    tokens: list[str] = _category_tokens(row.get("categories"))
+    tokens.extend(_price_tokens(row.get("price_level")))
     for attr_key, label in ATTRIBUTE_LABELS.items():
-        attr_col = {
-            "RestaurantsTakeOut": "takeout",
-            "RestaurantsDelivery": "delivery",
-            "RestaurantsReservations": "reservations",
-            "OutdoorSeating": "outdoor",
-            "GoodForKids": "kids",
-            "WheelchairAccessible": "wheelchair",
-        }.get(attr_key)
+        attr_col = _ATTRIBUTE_COLUMNS.get(attr_key)
         if attr_col is None or attr_col not in row:
             continue
-        if row.get(attr_col) is True:
-            tokens.append(label.replace(" ", "_"))
-    return " ".join(t for t in tokens if t)
+        if _is_true(row.get(attr_col)):
+            tokens.extend(_attribute_tokens(attr_col))
+            tokens.extend(_phrase_tokens(label))
+    return " ".join(_dedupe(tokens))
 
 
 class ContentBasedRecommender(BaseRecommender):
@@ -114,13 +203,24 @@ class ContentBasedRecommender(BaseRecommender):
         return profile
 
     def build_preference_profile(
-        self, cuisines: list[str], attributes: list[str] | None = None
+        self,
+        cuisines: list[str],
+        attributes: list[str] | None = None,
+        price_levels: list[int] | None = None,
     ) -> np.ndarray:
         """Cold-start: build a profile vector from explicit preferences."""
-        tokens = " ".join(c.replace(" ", "_") for c in cuisines)
+        tokens: list[str] = []
+        for cuisine in cuisines:
+            # Cuisine is the primary cold-start preference; keep price and
+            # dining attributes as secondary tie-breakers.
+            tokens.extend(_phrase_tokens(cuisine) * 3)
         if attributes:
-            tokens += " " + " ".join(a.replace(" ", "_") for a in attributes)
-        vec = self.vectorizer.transform([tokens])
+            for attribute in attributes:
+                tokens.extend(_attribute_tokens(attribute))
+        if price_levels:
+            for price_level in price_levels:
+                tokens.extend(_preference_price_tokens(price_level))
+        vec = self.vectorizer.transform([" ".join(tokens)])
         norm = np.linalg.norm(vec.toarray())
         return vec / norm if norm > 0 else vec
 
