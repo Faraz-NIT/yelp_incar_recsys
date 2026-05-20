@@ -1,4 +1,5 @@
 """Custom CSS and theme injection — PITSTOP design system."""
+
 from __future__ import annotations
 
 import base64
@@ -1294,7 +1295,9 @@ def page_header(title: str, subtitle: str = "") -> None:
 
 def status_banner(kind: str, message: str) -> None:
     cls = {"ok": "ok", "warn": "warn", "err": "err", "info": "info"}.get(kind, "")
-    st.markdown(f'<div class="status-banner {cls}">{message}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="status-banner {cls}">{message}</div>', unsafe_allow_html=True
+    )
 
 
 def metric_pill(label: str, value: str) -> None:
@@ -1308,9 +1311,9 @@ def metric_pill(label: str, value: str) -> None:
 def render_topnav(current_page: str = "app") -> None:
     """Render the fixed top navigation bar on every page."""
     _nav_pages = [
-        ("app",       "Home",      "./"),
-        ("discover",  "Discover",  "./Discover"),
-        ("admin",     "Admin",     "./Admin"),
+        ("app", "Home", "./"),
+        ("discover", "Discover", "./Discover"),
+        ("admin", "Admin", "./Admin"),
         ("analytics", "Analytics", "./Analytics"),
     ]
 
@@ -1323,7 +1326,8 @@ def render_topnav(current_page: str = "app") -> None:
     _logo = _logo_src()
     brand_html = (
         f'<img src="{_logo}" alt="McGill" class="ps-topnav-logo" />'
-        if _logo else '<span class="dot"></span>Pitstop'
+        if _logo
+        else '<span class="dot"></span>Pitstop'
     )
     st.markdown(
         f"""
@@ -1355,15 +1359,40 @@ def render_dock(
             f'<a href="{href}" class="ps-tab {active}" target="_self">'
             f'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
             f'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
-            f'{icon_path}</svg>{label}</a>'
+            f"{icon_path}</svg>{label}</a>"
         )
 
     tabs_html = (
-        _tab("app",       "./",          '<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>',                                                        "app")
-      + _tab("discover",  "./Discover",  '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5L13.5 13.5 8.5 15.5 10.5 10.5Z"/>',                                                                                                                                                                               "Discover")
-      + _tab("map",       "./Map_View",  '<path d="M9 4L3 6V20L9 18L15 20L21 18V4L15 6Z"/><path d="M9 4V18M15 6V20"/>',                                                                                                                                                                                        "Map View")
-      + _tab("admin",     "./Admin",     '<path d="M12 2L20 5V11C20 16 16 20 12 22 8 20 4 16 4 11V5Z"/><path d="M9 12L11 14 15 10"/>',                                                                                                                                                                         "Admin")
-      + _tab("analytics", "./Analytics", '<path d="M4 20V10M10 20V4M16 20V13M22 20H2"/>',                                                                                                                                                                                                                      "Analytics")
+        _tab(
+            "app",
+            "./",
+            '<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>',
+            "app",
+        )
+        + _tab(
+            "discover",
+            "./Discover",
+            '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5L13.5 13.5 8.5 15.5 10.5 10.5Z"/>',
+            "Discover",
+        )
+        + _tab(
+            "map",
+            "./Map_View",
+            '<path d="M9 4L3 6V20L9 18L15 20L21 18V4L15 6Z"/><path d="M9 4V18M15 6V20"/>',
+            "Map View",
+        )
+        + _tab(
+            "admin",
+            "./Admin",
+            '<path d="M12 2L20 5V11C20 16 16 20 12 22 8 20 4 16 4 11V5Z"/><path d="M9 12L11 14 15 10"/>',
+            "Admin",
+        )
+        + _tab(
+            "analytics",
+            "./Analytics",
+            '<path d="M4 20V10M10 20V4M16 20V13M22 20H2"/>',
+            "Analytics",
+        )
     )
 
     _dock_logo = _logo_src()
@@ -1382,7 +1411,7 @@ def render_dock(
         '<path d="M0,0 C-5,-4,-6,-14,0,-24 C6,-14,5,-4,0,0Z" transform="rotate(144)"/>'
         '<path d="M0,0 C-5,-4,-6,-14,0,-24 C6,-14,5,-4,0,0Z" transform="rotate(216)"/>'
         '<path d="M0,0 C-5,-4,-6,-14,0,-24 C6,-14,5,-4,0,0Z" transform="rotate(288)"/>'
-        '</g></svg>'
+        "</g></svg>"
     )
 
     pipeline_svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></svg>'
@@ -1440,6 +1469,7 @@ def render_dock(
 
 # ---------- Stubs for backward compatibility ----------
 
+
 def sidebar_extras(*args, **kwargs) -> None:
     """No-op — sidebar replaced by dock navigation."""
     pass
@@ -1457,13 +1487,16 @@ def breadcrumb(*parts: tuple[str, bool]) -> None:
         items.append(f"<span{cls}>{label}</span>")
         if i < len(parts) - 1:
             items.append('<span class="breadcrumb-sep">/</span>')
-    st.markdown(f'<nav class="breadcrumb">{"".join(items)}</nav>', unsafe_allow_html=True)
+    st.markdown(
+        f'<nav class="breadcrumb">{"".join(items)}</nav>', unsafe_allow_html=True
+    )
 
 
 def styled_page_header(title: str, subtitle: str = "", icon_src: str = "") -> None:
     badge = (
         f'<div class="page-header-badge"><img src="{icon_src}" alt=""/></div>'
-        if icon_src else ""
+        if icon_src
+        else ""
     )
     sub = f'<p class="page-header-subtitle">{subtitle}</p>' if subtitle else ""
     st.markdown(
@@ -1489,7 +1522,8 @@ def field_label(text: str) -> None:
 def empty_state_card(title: str, subtitle: str = "", icon_src: str = "") -> None:
     badge = (
         f'<div class="empty-state-badge"><img src="{icon_src}" alt=""/></div>'
-        if icon_src else ""
+        if icon_src
+        else ""
     )
     sub = f'<p class="empty-state-sub">{subtitle}</p>' if subtitle else ""
     st.markdown(

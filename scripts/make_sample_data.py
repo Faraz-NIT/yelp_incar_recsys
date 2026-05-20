@@ -8,6 +8,7 @@ self-contained synthetic dataset in the Yelp JSON-lines format under
 Run:
     python scripts/make_sample_data.py --n-users 800 --n-businesses 400
 """
+
 from __future__ import annotations
 
 import argparse
@@ -21,52 +22,115 @@ from pathlib import Path
 # Make ``src`` importable when running this file directly
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import numpy as np
+import numpy as np  # noqa: E402
 
-from src.config import (
-    RAW_DIR,
-    YELP_BUSINESS_JSON,
-    YELP_REVIEW_JSON,
-    YELP_TIP_JSON,
-    YELP_USER_JSON,
-)
-from src.geo import CITY_CENTROIDS
-
+from src.config import (RAW_DIR, YELP_BUSINESS_JSON,  # noqa: E402
+                        YELP_REVIEW_JSON, YELP_TIP_JSON, YELP_USER_JSON)
+from src.geo import CITY_CENTROIDS  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Lookup tables
 # ---------------------------------------------------------------------------
 CUISINES = [
-    "Italian", "Mexican", "Japanese", "Sushi Bars", "Chinese", "Thai",
-    "Indian", "Mediterranean", "French", "Korean", "Vietnamese", "Pizza",
-    "Burgers", "Steakhouses", "Seafood", "Vegetarian", "Vegan", "Cafes",
-    "Coffee & Tea", "Breakfast & Brunch", "Bakeries", "Barbeque", "Tex-Mex",
-    "Greek", "Spanish", "Ramen", "Ethiopian", "Lebanese",
+    "Italian",
+    "Mexican",
+    "Japanese",
+    "Sushi Bars",
+    "Chinese",
+    "Thai",
+    "Indian",
+    "Mediterranean",
+    "French",
+    "Korean",
+    "Vietnamese",
+    "Pizza",
+    "Burgers",
+    "Steakhouses",
+    "Seafood",
+    "Vegetarian",
+    "Vegan",
+    "Cafes",
+    "Coffee & Tea",
+    "Breakfast & Brunch",
+    "Bakeries",
+    "Barbeque",
+    "Tex-Mex",
+    "Greek",
+    "Spanish",
+    "Ramen",
+    "Ethiopian",
+    "Lebanese",
 ]
 
-NAME_PREFIXES = ["The", "Casa", "Mama's", "Luigi's", "Sakura", "Tokyo",
-                 "Bella", "El", "La", "Le", "Royal", "Golden", "Blue",
-                 "Red", "Green", "Urban", "Rustic", "Modern", "Old"]
-NAME_SUFFIXES = ["Kitchen", "Bistro", "Café", "Diner", "Grill", "House",
-                 "Garden", "Tavern", "Eatery", "Bar", "Cantina", "Bowl",
-                 "Co.", "& Co.", "Shop", "Counter", "Table", "Room"]
+NAME_PREFIXES = [
+    "The",
+    "Casa",
+    "Mama's",
+    "Luigi's",
+    "Sakura",
+    "Tokyo",
+    "Bella",
+    "El",
+    "La",
+    "Le",
+    "Royal",
+    "Golden",
+    "Blue",
+    "Red",
+    "Green",
+    "Urban",
+    "Rustic",
+    "Modern",
+    "Old",
+]
+NAME_SUFFIXES = [
+    "Kitchen",
+    "Bistro",
+    "Café",
+    "Diner",
+    "Grill",
+    "House",
+    "Garden",
+    "Tavern",
+    "Eatery",
+    "Bar",
+    "Cantina",
+    "Bowl",
+    "Co.",
+    "& Co.",
+    "Shop",
+    "Counter",
+    "Table",
+    "Room",
+]
 
 POS_PHRASES = [
-    "absolutely loved the food", "best meal in months",
-    "service was warm and attentive", "atmosphere is so cozy",
-    "portions are generous", "would definitely come back",
-    "fresh ingredients, full of flavour", "hidden gem of the neighbourhood",
+    "absolutely loved the food",
+    "best meal in months",
+    "service was warm and attentive",
+    "atmosphere is so cozy",
+    "portions are generous",
+    "would definitely come back",
+    "fresh ingredients, full of flavour",
+    "hidden gem of the neighbourhood",
 ]
 NEG_PHRASES = [
-    "the wait was way too long", "food was cold when it arrived",
-    "service felt rushed and inattentive", "prices are too high for what you get",
-    "noisy and cramped inside", "would not recommend",
-    "the menu was disappointing", "not as good as the reviews suggested",
+    "the wait was way too long",
+    "food was cold when it arrived",
+    "service felt rushed and inattentive",
+    "prices are too high for what you get",
+    "noisy and cramped inside",
+    "would not recommend",
+    "the menu was disappointing",
+    "not as good as the reviews suggested",
 ]
 NEUTRAL_PHRASES = [
-    "decent spot for a quick bite", "nothing special but not bad either",
-    "you get what you pay for", "average experience overall",
-    "okay if you're in the area", "menu has some hits and some misses",
+    "decent spot for a quick bite",
+    "nothing special but not bad either",
+    "you get what you pay for",
+    "average experience overall",
+    "okay if you're in the area",
+    "menu has some hits and some misses",
 ]
 
 
@@ -173,7 +237,9 @@ def generate_users(n: int, rng: np.random.Generator) -> list[dict]:
                 "elite": [],
                 "average_stars": float(np.clip(rng.normal(3.7, 0.4), 1.0, 5.0)),
                 "_taste_bias": float(rng.normal(0, 0.5)),  # private latent factor
-                "_preferred_cuisines": random.sample(CUISINES, k=int(rng.integers(2, 5))),
+                "_preferred_cuisines": random.sample(
+                    CUISINES, k=int(rng.integers(2, 5))
+                ),
             }
         )
     return users
@@ -206,7 +272,8 @@ def generate_reviews(
             star = float(
                 np.clip(
                     biz["_true_star"] + user["_taste_bias"] + rng.normal(0, 0.5),
-                    1, 5,
+                    1,
+                    5,
                 )
             )
             star_int = int(round(star))
@@ -234,7 +301,9 @@ def write_jsonl(rows: list[dict], path: Path, strip_private: bool = True) -> Non
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         for r in rows:
-            r = {k: v for k, v in r.items() if not (strip_private and k.startswith("_"))}
+            r = {
+                k: v for k, v in r.items() if not (strip_private and k.startswith("_"))
+            }
             f.write(json.dumps(r) + "\n")
     print(f"Wrote {len(rows):>7,} rows to {path}")
 

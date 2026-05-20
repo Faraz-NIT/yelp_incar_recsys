@@ -1,4 +1,5 @@
 """Restaurant recommendation cards."""
+
 from __future__ import annotations
 
 import base64
@@ -8,7 +9,9 @@ import pandas as pd
 import streamlit as st
 
 
-def _photo_b64(business_id: str, photo_map: dict[str, list[str]], photos_dir: Path | None) -> str | None:
+def _photo_b64(
+    business_id: str, photo_map: dict[str, list[str]], photos_dir: Path | None
+) -> str | None:
     """Return base64-encoded JPEG for the first available photo of a business."""
     if not photo_map or not photos_dir or not photos_dir.is_dir():
         return None
@@ -75,9 +78,7 @@ def render_card(
         tags_html += '<span class="tag">Outdoor</span>'
 
     address_html = (
-        f'<div class="rec-card-meta">📍 {address}, {city}</div>'
-        if address
-        else ""
+        f'<div class="rec-card-meta">📍 {address}, {city}</div>' if address else ""
     )
     why_html = f'<div class="rec-card-why">{why}</div>' if why else ""
 
@@ -86,8 +87,9 @@ def render_card(
     photo_html = (
         f'<div class="rec-card-photo">'
         f'<img src="data:image/jpeg;base64,{photo_b64}" alt="{name}" />'
-        f'</div>'
-        if photo_b64 else ""
+        f"</div>"
+        if photo_b64
+        else ""
     )
 
     st.markdown(
@@ -135,7 +137,9 @@ def render_recommendations(
 ) -> None:
     """Render a vertical list of recommendation cards."""
     if recs.empty:
-        st.warning("No recommendations to show. Try widening the radius or relaxing filters.")
+        st.warning(
+            "No recommendations to show. Try widening the radius or relaxing filters."
+        )
         return
     for i, (_, row) in enumerate(recs.iterrows(), 1):
         bid = str(row.get("business_id", ""))

@@ -9,6 +9,7 @@ Both the CLI script (``scripts/run_pipeline.py``) and the Streamlit admin
 page consume this. Progress callbacks let the Streamlit page render a
 progress bar.
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -17,33 +18,18 @@ from typing import Any
 
 import pandas as pd
 
-from src.config import (
-    DEFAULT_CONFIG,
-    INTERACTION_PARQUET,
-    MODEL_FILES,
-    MODELS_DIR,
-    PROCESSED_DIR,
-    REVIEW_PARQUET,
-    PipelineConfig,
-)
-from src.evaluation import (
-    evaluate_all,
-    evaluate_error,
-    evaluate_ranking,
-    train_test_split_interactions,
-)
+from src.config import (DEFAULT_CONFIG, INTERACTION_PARQUET, MODEL_FILES,
+                        MODELS_DIR, PROCESSED_DIR, REVIEW_PARQUET,
+                        PipelineConfig)
+from src.evaluation import (evaluate_all, evaluate_error, evaluate_ranking,
+                            train_test_split_interactions)
 from src.preprocessing import load_processed, run_preprocessing
-from src.recommenders import (
-    ContentBasedRecommender,
-    HybridRecommender,
-    ItemCFRecommender,
-    MatrixFactorizationRecommender,
-    PopularityRecommender,
-    UserCFRecommender,
-)
+from src.recommenders import (ContentBasedRecommender, HybridRecommender,
+                              ItemCFRecommender,
+                              MatrixFactorizationRecommender,
+                              PopularityRecommender, UserCFRecommender)
 from src.sentiment import add_sentiment
 from src.utils import load_json, logger, save_json, save_pickle, timed
-
 
 ProgressCB = Callable[[float, str], Any]
 
@@ -72,9 +58,7 @@ def run_sentiment(
 ) -> pd.DataFrame:
     review_path = PROCESSED_DIR / REVIEW_PARQUET
     if not review_path.exists():
-        raise FileNotFoundError(
-            "Reviews parquet not found. Run preprocessing first."
-        )
+        raise FileNotFoundError("Reviews parquet not found. Run preprocessing first.")
     reviews = pd.read_parquet(review_path)
     if reviews.empty:
         raise RuntimeError(
@@ -90,14 +74,11 @@ def run_sentiment(
     )
     reviews.to_parquet(review_path, index=False)
     # Rebuild interactions with effective rating
-    interactions = (
-        reviews.groupby(["user_id", "business_id"], as_index=False)
-        .agg(
-            rating=("effective_rating", "mean"),
-            raw_stars=("stars", "mean"),
-            sentiment=("sentiment_compound", "mean"),
-            n=("stars", "count"),
-        )
+    interactions = reviews.groupby(["user_id", "business_id"], as_index=False).agg(
+        rating=("effective_rating", "mean"),
+        raw_stars=("stars", "mean"),
+        sentiment=("sentiment_compound", "mean"),
+        n=("stars", "count"),
     )
     interactions.to_parquet(PROCESSED_DIR / INTERACTION_PARQUET, index=False)
     return reviews
@@ -222,7 +203,11 @@ def evaluate_models(
         )
         rows.append({"model": name, **err.as_dict(), **rank.as_dict()})
 
-    df = pd.DataFrame(rows).sort_values(f"ndcg@{k}", ascending=False).reset_index(drop=True)
+    df = (
+        pd.DataFrame(rows)
+        .sort_values(f"ndcg@{k}", ascending=False)
+        .reset_index(drop=True)
+    )
     metrics_path = MODELS_DIR / "evaluation_results.csv"
     df.to_csv(metrics_path, index=False)
     report(1.0, f"Saved metrics → {metrics_path.name}")
@@ -286,10 +271,18 @@ def run_full_pipeline(
                     "Cannot evaluate: no trained models found on disk. "
                     "Run the Train stage first."
                 )
-            from src.utils import load_pickle  # noqa: PLC0415 (local import OK)
+            from src.utils import \
+                load_pickle  # noqa: PLC0415 (local import OK)
+
             models = {
                 key: load_pickle(MODELS_DIR / MODEL_FILES[key])
-                for key in ("popularity", "content_based", "item_cf", "user_cf", "matrix_fact")
+                for key in (
+                    "popularity",
+                    "content_based",
+                    "item_cf",
+                    "user_cf",
+                    "matrix_fact",
+                )
             }
             interactions = data["interactions"]
             train_df, test_df = train_test_split_interactions(

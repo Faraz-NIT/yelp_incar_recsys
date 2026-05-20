@@ -5,6 +5,7 @@ Each pipeline stage (preprocess, sentiment, train, evaluate) is a separate
 toggle, plus a "Run full pipeline" button. A live progress bar is wired
 through ``run_full_pipeline``'s ``progress_cb`` argument.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -20,24 +21,31 @@ if str(ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from app.components.styles import inject_css, page_header, render_dock, render_topnav, status_banner  # noqa: E402
-from src.config import (  # noqa: E402
+from app.components.styles import (
+    inject_css,
+    page_header,  # noqa: E402
+    render_dock,
+    render_topnav,
+    status_banner,
+)
+from src.config import (
     DEFAULT_CONFIG,
-    MODELS_DIR,
+    MODELS_DIR,  # noqa: E402
     PROCESSED_DIR,
     RAW_DIR,
     PipelineConfig,
 )
 from src.geo import CITY_CENTROIDS  # noqa: E402
-from src.pipeline import (  # noqa: E402
+from src.pipeline import (
     has_processed_data,
-    has_trained_models,
+    has_trained_models,  # noqa: E402
     load_metadata,
     run_full_pipeline,
 )
 
-
-st.set_page_config(page_title="Admin", page_icon="·", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="Admin", page_icon="·", layout="wide", initial_sidebar_state="collapsed"
+)
 inject_css()
 render_topnav("admin")
 page_header(
@@ -82,11 +90,15 @@ if not raw_files:
         "No raw Yelp JSON files found in `data/raw/`. "
         "Click below to download and extract the dataset directly from Google Drive."
     )
-    if st.button("⬇ Download & extract raw data", type="primary", use_container_width=True):
+    if st.button(
+        "⬇ Download & extract raw data", type="primary", use_container_width=True
+    ):
         try:
             import gdown  # lazy import — only needed here
         except ImportError:
-            st.error("`gdown` is not installed. Run `pip install gdown>=4.7` and restart.")
+            st.error(
+                "`gdown` is not installed. Run `pip install gdown>=4.7` and restart."
+            )
             st.stop()
 
         # Save zip alongside the destination so both operations stay on the same drive.
@@ -187,14 +199,18 @@ with st.form("pipeline_config"):
             step=5,
         )
         st.markdown("**Hybrid weights (auto-normalised)**")
-        w_p = st.slider("Personalised", 0.0, 1.0, DEFAULT_CONFIG.weight_personalized, 0.05)
+        w_p = st.slider(
+            "Personalised", 0.0, 1.0, DEFAULT_CONFIG.weight_personalized, 0.05
+        )
         w_c = st.slider("Content", 0.0, 1.0, DEFAULT_CONFIG.weight_content, 0.05)
         w_o = st.slider("Popularity", 0.0, 1.0, DEFAULT_CONFIG.weight_popularity, 0.05)
         w_d = st.slider("Distance", 0.0, 1.0, DEFAULT_CONFIG.weight_distance, 0.05)
 
     st.markdown("**Stages to run**")
     stage_cols = st.columns(4)
-    run_preprocess = stage_cols[0].checkbox("Preprocess", value=not has_processed_data())
+    run_preprocess = stage_cols[0].checkbox(
+        "Preprocess", value=not has_processed_data()
+    )
     run_sentiment = stage_cols[1].checkbox("Sentiment", value=not has_processed_data())
     run_train = stage_cols[2].checkbox("Train", value=not has_trained_models())
     run_evaluate = stage_cols[3].checkbox("Evaluate", value=True)
@@ -204,6 +220,7 @@ with st.form("pipeline_config"):
         use_container_width=True,
         type="primary",
     )
+
 
 # ---------------------------------------------------------------------------
 # Build a PipelineConfig from the form
@@ -242,7 +259,9 @@ if submitted:
         st.warning("Pick at least one stage to run.")
         st.stop()
     if "evaluate" in stages and "train" not in stages and not has_trained_models():
-        st.warning("Cannot evaluate without trained models. Tick 'Train' or run it earlier.")
+        st.warning(
+            "Cannot evaluate without trained models. Tick 'Train' or run it earlier."
+        )
         st.stop()
 
     config = _build_config()
@@ -258,7 +277,9 @@ if submitted:
         log_area.code("\n".join(log_lines[-40:]), language="text")
 
     try:
-        result = run_full_pipeline(config=config, stages=stages, progress_cb=progress_cb)
+        result = run_full_pipeline(
+            config=config, stages=stages, progress_cb=progress_cb
+        )
         progress_bar.progress(1.0, text="Done.")
         status_banner("ok", "Pipeline completed successfully.")
         # Bust caches on the other pages
@@ -287,7 +308,9 @@ with art_left:
         size_mb = path.stat().st_size / (1024 * 1024)
         parquet_rows.append({"file": path.name, "size (MB)": round(size_mb, 2)})
     if parquet_rows:
-        st.dataframe(pd.DataFrame(parquet_rows), use_container_width=True, hide_index=True)
+        st.dataframe(
+            pd.DataFrame(parquet_rows), use_container_width=True, hide_index=True
+        )
     else:
         st.caption("None yet.")
 
@@ -298,7 +321,9 @@ with art_right:
         size_mb = path.stat().st_size / (1024 * 1024)
         model_rows.append({"file": path.name, "size (MB)": round(size_mb, 2)})
     if model_rows:
-        st.dataframe(pd.DataFrame(model_rows), use_container_width=True, hide_index=True)
+        st.dataframe(
+            pd.DataFrame(model_rows), use_container_width=True, hide_index=True
+        )
     else:
         st.caption("None yet.")
 
@@ -318,9 +343,7 @@ if eval_path.exists():
 # ---------------------------------------------------------------------------
 st.markdown("---")
 with st.expander("⚠️ Danger zone — reset artifacts"):
-    st.warning(
-        "These actions delete files on disk. They cannot be undone from the UI."
-    )
+    st.warning("These actions delete files on disk. They cannot be undone from the UI.")
     dz_col1, dz_col2 = st.columns(2)
     with dz_col1:
         if st.button("🗑 Delete trained models"):

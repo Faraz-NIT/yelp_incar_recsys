@@ -12,6 +12,7 @@ We try three ways to get the driver's coordinates, in order:
 The picker writes the chosen ``(lat, lon, source_label)`` into
 ``st.session_state["user_location"]``.
 """
+
 from __future__ import annotations
 
 from typing import Optional

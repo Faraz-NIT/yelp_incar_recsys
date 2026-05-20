@@ -13,6 +13,7 @@ compute cosine similarity in one of two modes:
    :meth:`build_preference_profile`. We then build a profile vector from those
    tokens directly and rank candidates against it.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -24,7 +25,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from src.config import ATTRIBUTE_LABELS, PipelineConfig
 from src.recommenders.base import BaseRecommender
-
 
 _ATTRIBUTE_COLUMNS = {
     "RestaurantsTakeOut": "takeout",
@@ -266,8 +266,10 @@ class ContentBasedRecommender(BaseRecommender):
 
         scores = self._score_profile(profile, cand_idx)
         cand["score"] = scores
-        return cand.sort_values("score", ascending=False).head(top_n).reset_index(
-            drop=True
+        return (
+            cand.sort_values("score", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
         )
 
     def similar_items(self, business_id: str, top_n: int = 10) -> pd.DataFrame:
@@ -275,9 +277,7 @@ class ContentBasedRecommender(BaseRecommender):
         if business_id not in self.index_:
             return pd.DataFrame(columns=["business_id", "score"])
         idx = self.index_[business_id]
-        sims = cosine_similarity(
-            self.item_matrix_[idx], self.item_matrix_
-        ).ravel()
+        sims = cosine_similarity(self.item_matrix_[idx], self.item_matrix_).ravel()
         sims[idx] = -1  # exclude self
         top = np.argsort(-sims)[:top_n]
         return pd.DataFrame(

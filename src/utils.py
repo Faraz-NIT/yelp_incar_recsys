@@ -1,4 +1,5 @@
 """Shared utilities: logging, persistence, timing."""
+
 from __future__ import annotations
 
 import json

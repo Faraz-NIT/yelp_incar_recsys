@@ -1,4 +1,5 @@
 """Geo utilities for in-car location-aware recommendation."""
+
 from __future__ import annotations
 
 import numpy as np

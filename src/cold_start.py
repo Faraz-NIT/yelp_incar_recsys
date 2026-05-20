@@ -19,6 +19,7 @@ For new *items* (a restaurant with no reviews yet), CF/MF can't score them.
 The content recommender still can, and the popularity score falls back to the
 Bayesian prior, so the hybrid degrades gracefully.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -28,7 +29,6 @@ import pandas as pd
 
 from src.config import PipelineConfig
 from src.recommenders.hybrid import HybridWeights
-
 
 UserRegime = Literal["new", "light", "established"]
 
@@ -57,9 +57,7 @@ def classify_user(
     return "established"
 
 
-def adjust_weights(
-    base: HybridWeights, regime: UserRegime
-) -> HybridWeights:
+def adjust_weights(base: HybridWeights, regime: UserRegime) -> HybridWeights:
     """Return rebalanced hybrid weights for the given regime."""
     if regime == "established":
         return base
@@ -88,9 +86,7 @@ def filter_by_profile(
         return businesses
     df = businesses.copy()
     if profile.price_levels:
-        df = df[
-            df["price_level"].isin(profile.price_levels) | df["price_level"].isna()
-        ]
+        df = df[df["price_level"].isin(profile.price_levels) | df["price_level"].isna()]
     if profile.attributes:
         # Each attribute is the column name (takeout, delivery, etc.)
         for attr in profile.attributes:

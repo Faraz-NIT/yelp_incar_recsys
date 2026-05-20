@@ -1,4 +1,5 @@
 """Auto-sliding photo carousel for the home page."""
+
 from __future__ import annotations
 
 import base64
@@ -8,13 +9,13 @@ from pathlib import Path
 
 try:
     from PIL import Image, ImageFilter
+
     _PIL_AVAILABLE = True
 except ImportError:
     _PIL_AVAILABLE = False
 
 import streamlit as st
 import streamlit.components.v1 as components
-
 
 # ---------------------------------------------------------------------------
 # City-specific hero copy
@@ -96,7 +97,7 @@ def _star_str(rating: float | None) -> str:
 def _load_city_photos(
     photo_map: dict[str, list[str]],
     photos_dir: Path,
-    businesses: list[dict],   # each dict: business_id, name, stars, categories
+    businesses: list[dict],  # each dict: business_id, name, stars, categories
     max_photos: int = 10,
 ) -> list[dict]:
     """Return up to max_photos slides, each with photo_b64 + restaurant metadata."""
@@ -110,12 +111,14 @@ def _load_city_photos(
         for pid in photo_map.get(bid, [])[:3]:
             path = photos_dir / f"{pid}.jpg"
             if path.exists():
-                result.append({
-                    "photo_b64": _encode_photo(path),
-                    "name": biz.get("name", ""),
-                    "stars": _star_str(biz.get("stars")),
-                    "cats": (biz.get("categories") or "")[:60],
-                })
+                result.append(
+                    {
+                        "photo_b64": _encode_photo(path),
+                        "name": biz.get("name", ""),
+                        "stars": _star_str(biz.get("stars")),
+                        "cats": (biz.get("categories") or "")[:60],
+                    }
+                )
                 break
     return result
 
@@ -154,17 +157,19 @@ def render_hero_carousel(
         slides_html = "\n".join(
             f'<div class="slide">'
             f'<img src="data:image/jpeg;base64,{s["photo_b64"]}" alt="{s["name"]}" />'
-            f'</div>'
+            f"</div>"
             for s in slides
         )
         dots_html = "\n".join(
             f'<div class="dot{" active" if i == 0 else ""}" data-idx="{i}"></div>'
             for i in range(len(slides))
         )
-        slide_data_js = json.dumps([
-            {"name": s["name"], "stars": s["stars"], "cats": s["cats"]}
-            for s in slides
-        ])
+        slide_data_js = json.dumps(
+            [
+                {"name": s["name"], "stars": s["stars"], "cats": s["cats"]}
+                for s in slides
+            ]
+        )
         n = len(slides)
         first = slides[0]
 
@@ -234,7 +239,9 @@ def render_hero_carousel(
         """
     else:
         # Try to use the placeholder food image when no slides are available
-        _placeholder = Path(__file__).resolve().parents[1] / "static" / "placeholder.jpg"
+        _placeholder = (
+            Path(__file__).resolve().parents[1] / "static" / "placeholder.jpg"
+        )
         if _placeholder.exists():
             with open(_placeholder, "rb") as _f:
                 _ph_b64 = base64.b64encode(_f.read()).decode()
@@ -243,14 +250,14 @@ def render_hero_carousel(
                     f'<div class="ph-overlay">'
                     f'<div class="ph-city">{city_name}</div>'
                     f'<div class="ph-hint">Add the Yelp photos dataset to see restaurant photos.</div>'
-                    f'</div>'
+                    f"</div>"
                 )
             else:
                 _overlay_html = (
                     '<div class="ph-overlay">'
                     '<div class="ph-city">Your next meal awaits</div>'
                     '<div class="ph-hint">Select a city in the sidebar to get started.</div>'
-                    '</div>'
+                    "</div>"
                 )
             right_html = f"""
         <div class="hero-right" style="position:relative;padding:0;overflow:hidden;">
@@ -263,8 +270,8 @@ def render_hero_carousel(
             city_label = city_name if city_name else "Select a city"
             hint = (
                 "Add the Yelp photos dataset to see photos."
-                if city_name else
-                "Select a city in the sidebar."
+                if city_name
+                else "Select a city in the sidebar."
             )
             right_html = f"""
         <div class="hero-right empty">
@@ -472,7 +479,7 @@ def render_carousel(
     slides_html = "\n".join(
         f'<div class="slide">'
         f'<img src="data:image/jpeg;base64,{s["photo_b64"]}" alt="{s["name"]}" />'
-        f'</div>'
+        f"</div>"
         for s in slides
     )
     dots_html = "\n".join(
@@ -481,10 +488,9 @@ def render_carousel(
     )
 
     # JS-safe metadata array (name/stars/cats per slide)
-    slide_data_js = json.dumps([
-        {"name": s["name"], "stars": s["stars"], "cats": s["cats"]}
-        for s in slides
-    ])
+    slide_data_js = json.dumps(
+        [{"name": s["name"], "stars": s["stars"], "cats": s["cats"]} for s in slides]
+    )
     n = len(slides)
     first = slides[0]
 

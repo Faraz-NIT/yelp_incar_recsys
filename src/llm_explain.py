@@ -12,6 +12,7 @@ of artefacts:
 Both are *strictly optional*. If ``GROQ_API_KEY`` is missing, we fall
 back to a deterministic template explanation so the demo still runs.
 """
+
 from __future__ import annotations
 
 import os
@@ -23,6 +24,7 @@ from src.utils import logger
 
 try:
     import groq as groq_sdk
+
     _HAS_GROQ = True
 except ImportError:  # pragma: no cover
     _HAS_GROQ = False
@@ -40,7 +42,11 @@ def template_explanation(row: pd.Series, user_cuisines: list[str] | None) -> str
     primary = next((c.strip() for c in cats if c.strip()), "restaurant")
     pieces: list[str] = []
     if user_cuisines:
-        match = [c for c in user_cuisines if c.lower() in (row.get("categories") or "").lower()]
+        match = [
+            c
+            for c in user_cuisines
+            if c.lower() in (row.get("categories") or "").lower()
+        ]
         if match:
             pieces.append(f"matches your taste for {match[0]}")
     pieces.append(f"{row.get('stars', '?')}★ on Yelp")
@@ -95,8 +101,14 @@ def llm_explanation(
         joined = "\n• ".join(snippets)
         review_block = f"\nWhat recent diners said:\n• {joined}"
 
-    price_str = "$" * int(row["price_level"]) if pd.notna(row.get("price_level")) else "unknown"
-    dist_str = f"{row['distance_km']:.1f} km away" if pd.notna(row.get("distance_km")) else "nearby"
+    price_str = (
+        "$" * int(row["price_level"]) if pd.notna(row.get("price_level")) else "unknown"
+    )
+    dist_str = (
+        f"{row['distance_km']:.1f} km away"
+        if pd.notna(row.get("distance_km"))
+        else "nearby"
+    )
     prefs_str = ", ".join(user_cuisines) if user_cuisines else "no stated preferences"
 
     system_msg = (
@@ -190,9 +202,9 @@ def annotate_recommendations(
         if reviews_df is not None and "business_id" in reviews_df.columns:
             sub = reviews_df[reviews_df["business_id"] == row["business_id"]]
             if not sub.empty and "text" in sub.columns:
-                snippets = sub.sort_values("stars", ascending=False)["text"].head(
-                    3
-                ).tolist()
+                snippets = (
+                    sub.sort_values("stars", ascending=False)["text"].head(3).tolist()
+                )
         if use_llm and i < max_llm_calls:
             explanations.append(llm_explanation(row, user_cuisines, snippets))
         else:

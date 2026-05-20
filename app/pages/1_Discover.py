@@ -1,4 +1,5 @@
 """Discover page: pick user, set GPS, get hybrid recommendations."""
+
 from __future__ import annotations
 
 import base64
@@ -34,17 +35,17 @@ from app.components.cards import render_recommendations  # noqa: E402
 from app.components.cold_start import render_onboarding  # noqa: E402
 from app.components.filters import apply_hard_filters, render_filter_rail  # noqa: E402
 from app.components.location import render_location_picker  # noqa: E402
-from app.components.styles import (  # noqa: E402
+from app.components.styles import (
     empty_state_card,
-    field_label,
+    field_label,  # noqa: E402
     inject_css,
     render_dock,
     render_topnav,
     status_banner,
 )
-from src.cold_start import (  # noqa: E402
+from src.cold_start import (
     adjust_weights,
-    classify_user,
+    classify_user,  # noqa: E402
     filter_by_profile,
 )
 from src.config import MODEL_FILES, MODELS_DIR, RAW_DIR  # noqa: E402
@@ -53,7 +54,6 @@ from src.llm_explain import annotate_recommendations  # noqa: E402
 from src.preprocessing import load_processed  # noqa: E402
 from src.recommenders.hybrid import HybridRecommender, HybridWeights  # noqa: E402
 from src.utils import load_business_photos, load_pickle  # noqa: E402
-
 
 st.set_page_config(
     page_title="Discover",
@@ -86,8 +86,17 @@ def _load_models() -> dict:
 
 
 def _processed_mtime() -> float:
-    from src.config import BUSINESS_PARQUET, INTERACTION_PARQUET, PROCESSED_DIR, REVIEW_PARQUET
-    files = [PROCESSED_DIR / f for f in (REVIEW_PARQUET, BUSINESS_PARQUET, INTERACTION_PARQUET)]
+    from src.config import (
+        BUSINESS_PARQUET,
+        INTERACTION_PARQUET,
+        PROCESSED_DIR,
+        REVIEW_PARQUET,
+    )
+
+    files = [
+        PROCESSED_DIR / f
+        for f in (REVIEW_PARQUET, BUSINESS_PARQUET, INTERACTION_PARQUET)
+    ]
     mtimes = [f.stat().st_mtime for f in files if f.exists()]
     return max(mtimes) if mtimes else 0.0
 
@@ -102,31 +111,36 @@ def _load_photo_map() -> dict:
     return load_business_photos(RAW_DIR)
 
 
-data       = _load_data(_processed_mtime())
-models     = _load_models()
-photo_map  = _load_photo_map()
+data = _load_data(_processed_mtime())
+models = _load_models()
+photo_map = _load_photo_map()
 photos_dir = RAW_DIR / "photos"
 
 if not data or "businesses" not in data:
-    status_banner("err", "No processed data found. Run the pipeline from the Admin page first.")
+    status_banner(
+        "err", "No processed data found. Run the pipeline from the Admin page first."
+    )
     st.stop()
 
 if not models:
-    status_banner("err", "Trained models missing. Train them from the Admin page first.")
+    status_banner(
+        "err", "Trained models missing. Train them from the Admin page first."
+    )
     st.stop()
 
-businesses   = data["businesses"]
-interactions = data.get("interactions", pd.DataFrame(columns=["user_id", "business_id"]))
-reviews      = data.get("reviews")
+businesses = data["businesses"]
+interactions = data.get(
+    "interactions", pd.DataFrame(columns=["user_id", "business_id"])
+)
+reviews = data.get("reviews")
 
 # ---------------------------------------------------------------------------
 # Page header
 # ---------------------------------------------------------------------------
-n_biz_fmt   = f"{len(businesses):,}"
-_food_src   = _img_b64("food-hero.png")
-_food_img   = (
-    f'<img src="{_food_src}" alt="" class="disc-ph-food" />'
-    if _food_src else ""
+n_biz_fmt = f"{len(businesses):,}"
+_food_src = _img_b64("food-hero.png")
+_food_img = (
+    f'<img src="{_food_src}" alt="" class="disc-ph-food" />' if _food_src else ""
 )
 st.markdown(
     f"""
@@ -153,21 +167,22 @@ st.markdown(
 # ---------------------------------------------------------------------------
 top_users = (
     interactions["user_id"].value_counts().head(50).index.tolist()
-    if not interactions.empty else []
+    if not interactions.empty
+    else []
 )
 
 _wiz_phase = st.session_state.get("wizard_phase", "choose")
-_wiz_mode  = st.session_state.get("wizard_mode", "returning")
+_wiz_mode = st.session_state.get("wizard_mode", "returning")
 
 _CARD_TITLES = {
-    "choose":     "Who&#8217;s driving?",
+    "choose": "Who&#8217;s driving?",
     "onboarding": "Tell us your taste",
-    "location":   "Where are you driving from?",
+    "location": "Where are you driving from?",
 }
 _STEP_LABELS = {
-    "choose":     "Step 01 &middot; Identity",
+    "choose": "Step 01 &middot; Identity",
     "onboarding": "Step 01 &middot; New User",
-    "location":   "Step 02 &middot; Location",
+    "location": "Step 02 &middot; Location",
 }
 
 _anim_id = f"wiz_{_wiz_phase}"
@@ -186,7 +201,7 @@ with st.container(border=True):
         st.markdown(
             '<div class="wiz-title-bar">'
             '<h2 class="wiz-hdr-title">Who&rsquo;s driving?</h2>'
-            '</div>',
+            "</div>",
             unsafe_allow_html=True,
         )
         # ── Two choice columns ───────────────────────────────────────────────
@@ -201,8 +216,8 @@ with st.container(border=True):
                 '<span class="wiz-tag wiz-tag-hot">Hybrid Model</span>'
                 '<span class="wiz-tag">Collaborative Filtering</span>'
                 '<span class="wiz-tag">~120ms</span>'
-                '</div>'
-                '</div>',
+                "</div>"
+                "</div>",
                 unsafe_allow_html=True,
             )
             if st.button("Select →", key="wiz_ret", use_container_width=True):
@@ -214,13 +229,13 @@ with st.container(border=True):
                 '<div class="wiz-card">'
                 '<span class="wiz-card-icon">&#10022;</span>'
                 '<div class="wiz-card-title">New user</div>'
-                "<div class=\"wiz-card-desc\">Tell us your taste and we'll find great nearby spots.</div>"
+                '<div class="wiz-card-desc">Tell us your taste and we\'ll find great nearby spots.</div>'
                 '<div class="wiz-tags">'
                 '<span class="wiz-tag">Cold Start</span>'
                 '<span class="wiz-tag">Content + Popularity</span>'
                 '<span class="wiz-tag">3 Quick Questions</span>'
-                '</div>'
-                '</div>',
+                "</div>"
+                "</div>",
                 unsafe_allow_html=True,
             )
             if st.button("Select →", key="wiz_new", use_container_width=True):
@@ -236,8 +251,8 @@ with st.container(border=True):
             '<span class="wiz-step on">01 Identity</span>'
             '<span class="wiz-step">02 Location</span>'
             '<span class="wiz-step">03 Taste</span>'
-            '</div>'
-            '</div>',
+            "</div>"
+            "</div>",
             unsafe_allow_html=True,
         )
 
@@ -258,7 +273,7 @@ with st.container(border=True):
             f'<div class="wizard-card-header-inner">'
             f'<span class="wizard-card-title">{_CARD_TITLES["location"]}</span>'
             f'<span class="wizard-card-step">{_STEP_LABELS["location"]}</span>'
-            f'</div>',
+            f"</div>",
             unsafe_allow_html=True,
         )
         _back_col2, _ = st.columns([1, 5])
@@ -285,10 +300,10 @@ with st.container(border=True):
 if _wiz_phase == "choose":
     st.markdown(
         '<div class="wiz-hints">'
-        '<span>&#8593; to switch &middot; &#8629; to select'
-        ' &middot; We never store your location.</span>'
+        "<span>&#8593; to switch &middot; &#8629; to select"
+        " &middot; We never store your location.</span>"
         '<a href="./" target="_self">Back to home</a>'
-        '</div>',
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -312,36 +327,38 @@ if _wiz_mode == "returning":
     profile = None
 
 threshold = 3
-regime    = classify_user(selected_user_id, interactions, threshold=threshold)
-n_history = int((interactions["user_id"] == selected_user_id).sum()) if selected_user_id else 0
+regime = classify_user(selected_user_id, interactions, threshold=threshold)
+n_history = (
+    int((interactions["user_id"] == selected_user_id).sum()) if selected_user_id else 0
+)
 
 if regime == "established":
-    _banner_msg  = (
+    _banner_msg = (
         f"{n_history} ratings on record — "
         f'<em style="color:var(--accent)">full hybrid model</em>'
         f" with collaborative filtering at the centre."
     )
     _banner_kind = "ok"
 elif regime == "light":
-    _banner_msg  = (
+    _banner_msg = (
         f"Only {n_history} ratings in history — blending your stated "
         "preferences with collaborative filtering."
     )
     _banner_kind = "warn"
 else:
-    _banner_msg  = (
+    _banner_msg = (
         "No rating history found — using stated cuisine preferences "
         "plus the most popular nearby restaurants."
     )
     _banner_kind = "warn"
 
 _MODEL_LABELS: dict[str, str] = {
-    "hybrid":        "Hybrid (recommended)",
-    "popularity":    "Popularity",
+    "hybrid": "Hybrid (recommended)",
+    "popularity": "Popularity",
     "content_based": "Content-based",
-    "item_cf":       "Item-CF",
-    "user_cf":       "User-CF",
-    "matrix_fact":   "Matrix Factorization",
+    "item_cf": "Item-CF",
+    "user_cf": "User-CF",
+    "matrix_fact": "Matrix Factorization",
 }
 
 # Read model + llm toggle from session state (set by widgets rendered below)
@@ -430,7 +447,10 @@ if not cand.empty:
             )
     else:
         recs = annotate_recommendations(
-            recs, user_cuisines=user_cuisines, reviews_df=None, use_llm=False,
+            recs,
+            user_cuisines=user_cuisines,
+            reviews_df=None,
+            use_llm=False,
         )
 
 # Persist to disk — HTML link navigation starts a new Streamlit session so
@@ -438,15 +458,18 @@ if not cand.empty:
 _RECS_CACHE = ROOT / "app" / "static" / "_last_recs.pkl"
 if not recs.empty:
     import pickle as _pickle
+
     _RECS_CACHE.parent.mkdir(parents=True, exist_ok=True)
     with open(_RECS_CACHE, "wb") as _f:
-        _pickle.dump({"recs": recs, "center": (lat, lon), "radius_km": filters.radius_km}, _f)
-    st.session_state["last_recs"]      = recs
-    st.session_state["last_center"]    = (lat, lon)
+        _pickle.dump(
+            {"recs": recs, "center": (lat, lon), "radius_km": filters.radius_km}, _f
+        )
+    st.session_state["last_recs"] = recs
+    st.session_state["last_center"] = (lat, lon)
     st.session_state["last_radius_km"] = filters.radius_km
 
-n_results   = len(recs)
-sort_label  = _MODEL_LABELS.get(_sel_model_key, _sel_model_key)
+n_results = len(recs)
+sort_label = _MODEL_LABELS.get(_sel_model_key, _sel_model_key)
 
 # ── Center: results list ───────────────────────────────────────────────────
 with col_c:
@@ -454,7 +477,7 @@ with col_c:
 
     if _model_swapped:
         st.info(
-            f"**{_MODEL_LABELS.get(st.session_state.get('selected_model_key','hybrid'))}** "
+            f"**{_MODEL_LABELS.get(st.session_state.get('selected_model_key', 'hybrid'))}** "
             "needs user history — fell back to Popularity."
         )
 
@@ -506,12 +529,14 @@ with col_c:
     with st.expander("🔬 Under the hood"):
         if _sel_model_key == "hybrid" and weights is not None:
             st.write("**Active hybrid weights** (after cold-start adjustment):")
-            st.json({
-                "personalised": round(weights.personalized, 3),
-                "content":      round(weights.content, 3),
-                "popularity":   round(weights.popularity, 3),
-                "distance":     round(weights.distance, 3),
-            })
+            st.json(
+                {
+                    "personalised": round(weights.personalized, 3),
+                    "content": round(weights.content, 3),
+                    "popularity": round(weights.popularity, 3),
+                    "distance": round(weights.distance, 3),
+                }
+            )
         else:
             st.write(f"**Active model:** {_MODEL_LABELS[_sel_model_key]}")
         st.write(
@@ -519,13 +544,22 @@ with col_c:
             f"candidates: `{len(cand)}` within {filters.radius_km} km"
         )
         if not recs.empty and {
-            "personalised_score", "content_score", "popularity_score", "distance_score"
+            "personalised_score",
+            "content_score",
+            "popularity_score",
+            "distance_score",
         }.issubset(recs.columns):
             st.dataframe(
-                recs[[
-                    "name", "personalised_score", "content_score",
-                    "popularity_score", "distance_score", "score",
-                ]].round(3),
+                recs[
+                    [
+                        "name",
+                        "personalised_score",
+                        "content_score",
+                        "popularity_score",
+                        "distance_score",
+                        "score",
+                    ]
+                ].round(3),
                 use_container_width=True,
             )
 

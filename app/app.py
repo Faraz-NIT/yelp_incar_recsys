@@ -1,4 +1,5 @@
 """Streamlit landing page — PITSTOP hero."""
+
 from __future__ import annotations
 
 import base64
@@ -28,6 +29,7 @@ inject_css()
 # ---------------------------------------------------------------------------
 _STATIC = ROOT / "app" / "static"
 
+
 def _img_b64(path: Path) -> str:
     if not path.exists():
         return ""
@@ -36,15 +38,17 @@ def _img_b64(path: Path) -> str:
     data = base64.b64encode(path.read_bytes()).decode()
     return f"data:image/{mime};base64,{data}"
 
+
 _food_src = _img_b64(_STATIC / "food-hero.png")
 _food_html = (
     f'<div class="ps-hero-art"><img src="{_food_src}" alt="" /></div>'
-    if _food_src else ""
+    if _food_src
+    else ""
 )
 
 processed_ok = has_processed_data()
-models_ok    = has_trained_models()
-spots_count  = "14" if models_ok else "—"
+models_ok = has_trained_models()
+spots_count = "14" if models_ok else "—"
 
 render_topnav("app")
 

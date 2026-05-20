@@ -14,6 +14,7 @@ When the active user has fewer than ``cold_start_review_threshold`` ratings
 in the training set, the hybrid automatically rebalances toward content and
 popularity (handled outside this class by ``cold_start.adjust_weights``).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,7 +26,8 @@ from src.config import PipelineConfig
 from src.geo import distance_score
 from src.recommenders.base import BaseRecommender
 from src.recommenders.content_based import ContentBasedRecommender
-from src.recommenders.matrix_factorization import MatrixFactorizationRecommender
+from src.recommenders.matrix_factorization import \
+    MatrixFactorizationRecommender
 from src.recommenders.popularity import PopularityRecommender
 
 
@@ -157,11 +159,18 @@ class HybridRecommender(BaseRecommender):
         comp["score"] = score
         # Merge with original candidate columns so downstream UI can show
         # everything (name, distance, etc.) without a second join.
-        cols_to_drop = ["personalised_score", "content_score", "popularity_score",
-                        "distance_score", "score"]
+        cols_to_drop = [
+            "personalised_score",
+            "content_score",
+            "popularity_score",
+            "distance_score",
+            "score",
+        ]
         merge_cols = [c for c in cols_to_drop if c in candidates.columns]
         cand_clean = candidates.drop(columns=merge_cols)
         merged = cand_clean.merge(comp, on="business_id", how="inner")
-        return merged.sort_values("score", ascending=False).head(top_n).reset_index(
-            drop=True
+        return (
+            merged.sort_values("score", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
         )

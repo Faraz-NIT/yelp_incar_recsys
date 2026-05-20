@@ -12,6 +12,7 @@ median review count).
 This is non-personalised, but it doubles as the cold-start fallback when we
 have nothing else to go on.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -41,8 +42,11 @@ class PopularityRecommender(BaseRecommender):
         if businesses is None:
             raise ValueError("PopularityRecommender requires the businesses table.")
 
-        rating_col = "effective_rating" if reviews is not None and \
-            "effective_rating" in reviews.columns else None
+        rating_col = (
+            "effective_rating"
+            if reviews is not None and "effective_rating" in reviews.columns
+            else None
+        )
 
         if rating_col and reviews is not None:
             agg = (
@@ -78,13 +82,13 @@ class PopularityRecommender(BaseRecommender):
             raise RuntimeError("Call fit() first.")
         cand = candidates[["business_id"]].copy()
         cand["score"] = cand["business_id"].map(self.scores_).fillna(0.0)
-        return cand.sort_values("score", ascending=False).head(top_n).reset_index(
-            drop=True
+        return (
+            cand.sort_values("score", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
         )
 
-    def score_pairs(
-        self, user_id: str | None, business_ids: list[str]
-    ) -> pd.Series:
+    def score_pairs(self, user_id: str | None, business_ids: list[str]) -> pd.Series:
         if self.scores_ is None:
             raise RuntimeError("Call fit() first.")
         return self.scores_.reindex(business_ids).fillna(0.0)

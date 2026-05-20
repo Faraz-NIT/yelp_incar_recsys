@@ -4,6 +4,7 @@ These run on a tiny synthetic dataset so they execute in seconds. They're
 not benchmarks — they verify each recommender fits and returns a
 well-formed DataFrame with the agreed interface.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -11,15 +12,10 @@ import pandas as pd
 import pytest
 
 from src.config import PipelineConfig
-from src.recommenders import (
-    BaseRecommender,
-    ContentBasedRecommender,
-    HybridRecommender,
-    ItemCFRecommender,
-    MatrixFactorizationRecommender,
-    PopularityRecommender,
-    UserCFRecommender,
-)
+from src.recommenders import (BaseRecommender, ContentBasedRecommender,
+                              HybridRecommender, ItemCFRecommender,
+                              MatrixFactorizationRecommender,
+                              PopularityRecommender, UserCFRecommender)
 from src.recommenders.content_based import _build_description
 
 
@@ -79,9 +75,7 @@ def test_popularity_recommender(synthetic_data):
     rec = PopularityRecommender().fit(
         synthetic_data["interactions"], businesses=synthetic_data["businesses"]
     )
-    out = rec.recommend(
-        user_id=None, candidates=synthetic_data["businesses"], top_n=5
-    )
+    out = rec.recommend(user_id=None, candidates=synthetic_data["businesses"], top_n=5)
     assert len(out) == 5
     assert "score" in out.columns
     assert out["score"].between(0, 1).all()
@@ -219,7 +213,12 @@ def test_hybrid_end_to_end(synthetic_data):
     assert len(out) == 5
     assert "score" in out.columns
     # Component scores must be present
-    for col in ("personalised_score", "content_score", "popularity_score", "distance_score"):
+    for col in (
+        "personalised_score",
+        "content_score",
+        "popularity_score",
+        "distance_score",
+    ):
         assert col in out.columns
     # Scores must be sorted descending
     assert (out["score"].diff().dropna() <= 0).all()
@@ -227,9 +226,9 @@ def test_hybrid_end_to_end(synthetic_data):
 
 def test_hybrid_cold_start(synthetic_data):
     """A user not in training should still produce ranked candidates."""
-    hybrid = HybridRecommender(config=PipelineConfig(mf_n_factors=8, mf_n_epochs=3)).fit(
-        synthetic_data["interactions"], businesses=synthetic_data["businesses"]
-    )
+    hybrid = HybridRecommender(
+        config=PipelineConfig(mf_n_factors=8, mf_n_epochs=3)
+    ).fit(synthetic_data["interactions"], businesses=synthetic_data["businesses"])
     cand = synthetic_data["businesses"].copy()
     cand["distance_km"] = np.random.uniform(0.5, 10, len(cand))
     out = hybrid.recommend(user_id="brand_new_user", candidates=cand, top_n=5)

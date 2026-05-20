@@ -5,6 +5,7 @@ classic Funk-style biased MF with L2 regularisation, the same model used in
 the Netflix Prize. When Surprise is unavailable, falls back to TruncatedSVD on
 the centred sparse matrix.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -16,6 +17,7 @@ from src.utils import logger, timed
 
 try:
     from surprise import SVD, Dataset, Reader
+
     _HAS_SURPRISE = True
 except ImportError:  # pragma: no cover
     _HAS_SURPRISE = False
@@ -115,13 +117,13 @@ class MatrixFactorizationRecommender(BaseRecommender):
             dtype=np.float32,
         )
         cand["score"] = (preds - 1.0) / 4.0
-        return cand.sort_values("score", ascending=False).head(top_n).reset_index(
-            drop=True
+        return (
+            cand.sort_values("score", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
         )
 
-    def score_pairs(
-        self, user_id: str | None, business_ids: list[str]
-    ) -> pd.Series:
+    def score_pairs(self, user_id: str | None, business_ids: list[str]) -> pd.Series:
         if user_id is None:
             return pd.Series(0.0, index=business_ids, dtype=np.float32)
         preds = [self._predict(user_id, b) for b in business_ids]

@@ -12,6 +12,7 @@ into a 1-5 star equivalent and blend with the explicit star via ``alpha``:
 
     effective_rating = alpha * stars + (1 - alpha) * sentiment_star
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -81,8 +82,7 @@ def add_sentiment(
     df["sentiment_compound"] = compounds
     df["sentiment_star"] = compound_to_star(df["sentiment_compound"])
     df["effective_rating"] = (
-        alpha * df["stars"].astype(float)
-        + (1.0 - alpha) * df["sentiment_star"]
+        alpha * df["stars"].astype(float) + (1.0 - alpha) * df["sentiment_star"]
     ).clip(1.0, 5.0)
 
     # Bucket sentiment for analytics

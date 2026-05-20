@@ -1,4 +1,5 @@
 """Map view: visualise the user location, radius, and ranked pins."""
+
 from __future__ import annotations
 
 import sys
@@ -11,17 +12,27 @@ if str(ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from app.components.styles import inject_css, page_header, render_dock, render_topnav, status_banner  # noqa: E402
+from app.components.styles import (
+    inject_css,
+    page_header,  # noqa: E402
+    render_dock,
+    render_topnav,
+    status_banner,
+)
 from src.preprocessing import load_processed  # noqa: E402
 
-
-st.set_page_config(page_title="Map View", page_icon="·", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="Map View",
+    page_icon="·",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
 inject_css()
 render_topnav("map")
 page_header("Map View", "Where the recommendations actually are.")
 
 
-import pickle as _pickle
+import pickle as _pickle  # noqa: E402
 
 _RECS_CACHE = ROOT / "app" / "static" / "_last_recs.pkl"
 
@@ -35,13 +46,14 @@ if (recs is None or recs.empty) and _RECS_CACHE.exists():
     try:
         with open(_RECS_CACHE, "rb") as _f:
             _cached = _pickle.load(_f)
-        recs      = _cached.get("recs")
-        center    = _cached.get("center")
+        recs = _cached.get("recs")
+        center = _cached.get("center")
         radius_km = _cached.get("radius_km", 5.0)
     except Exception:
         pass
 
 have_recs = recs is not None and not recs.empty and center is not None
+
 
 # ---------------------------------------------------------------------------
 # Fallback: load all businesses if no recommendations yet
@@ -55,19 +67,24 @@ def _load_businesses() -> pd.DataFrame | None:
     needed = ["latitude", "longitude", "name", "stars", "categories"]
     if not all(c in biz.columns for c in ["latitude", "longitude"]):
         return None
-    return biz[[c for c in needed if c in biz.columns]].dropna(subset=["latitude", "longitude"])
+    return biz[[c for c in needed if c in biz.columns]].dropna(
+        subset=["latitude", "longitude"]
+    )
 
 
 if not have_recs:
     status_banner(
         "info",
-        'Showing all indexed restaurants. '
+        "Showing all indexed restaurants. "
         '<a href="./Discover" target="_self" style="color:var(--accent)">Generate recommendations</a>'
-        ' on the Discover page to highlight your personalised picks.',
+        " on the Discover page to highlight your personalised picks.",
     )
     businesses_df = _load_businesses()
     if businesses_df is None or businesses_df.empty:
-        status_banner("warn", "No processed data found. Run the pipeline from the Admin page first.")
+        status_banner(
+            "warn",
+            "No processed data found. Run the pipeline from the Admin page first.",
+        )
         st.stop()
 
     # Default center: centroid of all businesses
@@ -92,7 +109,13 @@ except ImportError:
     )
     if have_recs:
         st.dataframe(
-            recs[[c for c in ["name", "stars", "distance_km", "score", "address"] if c in recs.columns]],
+            recs[
+                [
+                    c
+                    for c in ["name", "stars", "distance_km", "score", "address"]
+                    if c in recs.columns
+                ]
+            ],
             use_container_width=True,
         )
     st.stop()
@@ -227,12 +250,15 @@ if have_recs:
     # ---------------------------------------------------------------------------
     st.markdown("### Ranked list")
     display_cols = [
-        c for c in ["name", "stars", "distance_km", "score", "categories", "address"]
+        c
+        for c in ["name", "stars", "distance_km", "score", "categories", "address"]
         if c in recs.columns
     ]
     st.dataframe(
         recs[display_cols].assign(
-            distance_km=lambda d: d["distance_km"].round(2) if "distance_km" in d else None,
+            distance_km=lambda d: (
+                d["distance_km"].round(2) if "distance_km" in d else None
+            ),
             score=lambda d: d["score"].round(3) if "score" in d else None,
         ),
         use_container_width=True,

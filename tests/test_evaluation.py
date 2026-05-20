@@ -1,14 +1,12 @@
 """Tests for the recommender evaluation helpers."""
+
 from __future__ import annotations
 
 import pandas as pd
 import pytest
 
-from src.evaluation import (
-    catalog_coverage_at_k,
-    evaluate_ranking,
-    train_test_split_interactions,
-)
+from src.evaluation import (catalog_coverage_at_k, evaluate_ranking,
+                            train_test_split_interactions)
 from src.recommenders.base import BaseRecommender
 
 
@@ -50,9 +48,7 @@ class FixedRankRecommender(BaseRecommender):
         out = candidates[["business_id"]].copy()
         out["_rank"] = out["business_id"].map(rank).fillna(len(rank)).astype(int)
         out = (
-            out.sort_values(["_rank", "business_id"])
-            .head(top_n)
-            .drop(columns="_rank")
+            out.sort_values(["_rank", "business_id"]).head(top_n).drop(columns="_rank")
         )
         n = max(len(out), 1)
         out["score"] = [(n - i) / n for i in range(len(out))]

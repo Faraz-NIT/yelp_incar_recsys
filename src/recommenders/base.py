@@ -8,6 +8,7 @@ All concrete recommenders implement:
 By keeping a single interface, the hybrid recommender can compose them and the
 Streamlit page can switch between them with a single dropdown.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -28,8 +29,7 @@ class BaseRecommender(ABC):
         interactions: pd.DataFrame,
         businesses: pd.DataFrame | None = None,
         reviews: pd.DataFrame | None = None,
-    ) -> "BaseRecommender":
-        ...
+    ) -> "BaseRecommender": ...
 
     @abstractmethod
     def recommend(
@@ -37,8 +37,7 @@ class BaseRecommender(ABC):
         user_id: str | None,
         candidates: pd.DataFrame,
         top_n: int = 10,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     @staticmethod
     def normalize_rating_scores(
@@ -53,9 +52,7 @@ class BaseRecommender(ABC):
         scores = (arr - min_rating) / (max_rating - min_rating)
         return np.clip(scores, 0.0, 1.0)
 
-    def score_pairs(
-        self, user_id: str | None, business_ids: list[str]
-    ) -> pd.Series:
+    def score_pairs(self, user_id: str | None, business_ids: list[str]) -> pd.Series:
         """Return raw scores for a list of business IDs.
 
         Default implementation falls back to ``recommend``. Concrete classes

@@ -1,4 +1,5 @@
 """Central configuration for the Yelp in-car restaurant recommender system."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

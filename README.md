@@ -97,17 +97,27 @@ Open <http://localhost:8501>. The synthetic data is designed to give the
 recommenders *real* signal — reviews use rating-conditional vocabulary so
 VADER picks up genuine sentiment patterns.
 
-### Path B — real Yelp data
+### Path B — real Yelp data (Admin UI download)
 
-1. Download the dataset from <https://www.yelp.com/dataset>.
-2. Unzip it and drop these three files into `data/raw/`:
-   - `yelp_academic_dataset_business.json`
-   - `yelp_academic_dataset_review.json`
-   - `yelp_academic_dataset_user.json`
-3. Open the Streamlit app (`streamlit run app/app.py`) and go to the
-   **Admin** page. Pick a city (Philadelphia, Tampa, and New Orleans
-   are the most represented in the dataset), adjust thresholds, and
-   click **Run selected stages**. The progress bar shows live status.
+If you have access to the pre-packaged dataset on Google Drive, the
+**Admin** page can download and extract it for you automatically:
+
+1. Launch the app: `streamlit run app/app.py`
+2. Go to the **Admin** page — if no raw files are detected, a
+   **"⬇ Download & extract raw data"** button appears at the top.
+3. Click it. The zip is downloaded from Google Drive and extracted
+   directly into `data/raw/` (JSON files flat, photos into `data/raw/photos/`).
+4. Once complete the page reloads and you can proceed to run the pipeline.
+
+Alternatively, download the dataset manually from <https://www.yelp.com/dataset>,
+unzip it, and drop these files into `data/raw/`:
+- `yelp_academic_dataset_business.json`
+- `yelp_academic_dataset_review.json`
+- `yelp_academic_dataset_user.json`
+
+Then open the **Admin** page, pick a city (Philadelphia, Tampa, and New
+Orleans are the most represented in the dataset), adjust thresholds, and
+click **Run selected stages**. The progress bar shows live status.
 
 Or, headless via CLI:
 
@@ -368,6 +378,32 @@ Use of the Yelp Open Dataset is governed by Yelp's
 [Terms of Use](https://www.yelp.com/dataset). It is licensed for academic
 use only and is **not** redistributed by this repository — you must
 download it yourself.
+
+---
+
+## Code quality
+
+The project is formatted and linted with **black**, **isort**, and **pycodestyle**, and tested with **pytest**. Tool configuration lives in `setup.cfg`.
+
+```bash
+# Format
+python -m isort .
+python -m black .
+
+# Lint
+python -m pycodestyle app/ src/ scripts/ tests/
+
+# Test
+python -m pytest tests/ -v
+```
+
+**Fixes applied (May 2026):**
+- `isort` + `black` auto-formatted all 31 Python source files
+- Fixed `E231` (missing space after comma) in `app/pages/1_Discover.py`
+- Fixed `E226` (missing space around `*`) in `app/pages/4_Analytics.py` and `scripts/run_pipeline.py`
+- Added `# noqa: E402` where `sys.path` manipulation intentionally precedes imports (`app/pages/2_Map_View.py`, `scripts/make_sample_data.py`)
+- `setup.cfg` added to align all tools: pycodestyle suppresses `E501/E402/W503/E704` (CSS strings, intentional late imports, black's operator style, abstract stubs)
+- All **15 tests pass**
 
 ---
 

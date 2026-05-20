@@ -10,6 +10,7 @@ Use ``train_test_split_interactions`` for a reproducible per-user holdout split
 that guarantees every test user also appears in training (so user-CF/MF can
 score them).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -62,9 +63,11 @@ def train_test_split_interactions(
         test_rows.append(group.iloc[idx[:cutoff]])
         train_rows.append(group.iloc[idx[cutoff:]])
     train = pd.concat(train_rows, ignore_index=True)
-    test = pd.concat(test_rows, ignore_index=True) if test_rows else interactions.iloc[
-        :0
-    ].copy()
+    test = (
+        pd.concat(test_rows, ignore_index=True)
+        if test_rows
+        else interactions.iloc[:0].copy()
+    )
     return train, test
 
 
@@ -181,17 +184,21 @@ def evaluate_ranking(
     negatives instead of all unseen businesses (much faster; None = full rank).
     """
     if test.empty:
-        return RankingMetrics(precision=float("nan"), recall=float("nan"),
-                              ndcg=float("nan"), coverage=float("nan"),
-                              n_users=0, k=k)
+        return RankingMetrics(
+            precision=float("nan"),
+            recall=float("nan"),
+            ndcg=float("nan"),
+            coverage=float("nan"),
+            n_users=0,
+            k=k,
+        )
     all_biz_arr = businesses["business_id"].to_numpy()
     all_biz_set = set(all_biz_arr)
     catalog_size = len(all_biz_set)
     rng = np.random.default_rng(rng_seed)
     # Pre-index train by user to avoid O(n_train) scan per user
     train_seen: dict[str, set[str]] = {
-        uid: set(grp["business_id"])
-        for uid, grp in train.groupby("user_id")
+        uid: set(grp["business_id"]) for uid, grp in train.groupby("user_id")
     }
     precisions, recalls, ndcgs = [], [], []
     recommended_catalog: set[str] = set()
@@ -249,7 +256,12 @@ def evaluate_all(
     for name, model in models.items():
         err = evaluate_error(model, test)
         rank = evaluate_ranking(
-            model, train, test, businesses, k=k, max_users=max_users,
+            model,
+            train,
+            test,
+            businesses,
+            k=k,
+            max_users=max_users,
             n_neg_samples=n_neg_samples,
         )
         row = {"model": name, **err.as_dict(), **rank.as_dict()}

@@ -1,4 +1,5 @@
 """Cold-start onboarding wizard for new users."""
+
 from __future__ import annotations
 
 import streamlit as st
@@ -29,7 +30,9 @@ _RADIUS_SVG = """<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 </svg>"""
 
 
-def _sec_head(icon_svg: str, label: str, heading: str, req: str = "", first: bool = False) -> str:
+def _sec_head(
+    icon_svg: str, label: str, heading: str, req: str = "", first: bool = False
+) -> str:
     req_html = f'<span class="cs-req">&#x2014; {req}</span>' if req else ""
     extra = " cs-sec-head-first" if first else ""
     return f"""
@@ -53,7 +56,8 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
         return st.session_state["cold_start_profile"]
 
     # ── Card head: title + step indicator ────────────────────────────────────
-    st.markdown("""
+    st.markdown(
+        """
 <div class="cs-head">
   <div class="cs-head-left">
     <h1 class="cs-title">Tell us your <span class="cs-accent">taste.</span></h1>
@@ -76,18 +80,23 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
     </div>
   </nav>
 </div>
-""", unsafe_allow_html=True)
+""",
+        unsafe_allow_html=True,
+    )
 
     with st.form("cold_start_form"):
 
         # ── Cuisines ──────────────────────────────────────────────────────────
-        st.markdown(_sec_head(
-            _CUISINE_SVG,
-            label="Cuisines you enjoy",
-            heading="What&#8217;s on the menu",
-            req="pick 2 to 6",
-            first=True,
-        ), unsafe_allow_html=True)
+        st.markdown(
+            _sec_head(
+                _CUISINE_SVG,
+                label="Cuisines you enjoy",
+                heading="What&#8217;s on the menu",
+                req="pick 2 to 6",
+                first=True,
+            ),
+            unsafe_allow_html=True,
+        )
         cuisines = st.multiselect(
             "Cuisines",
             options=CUISINE_OPTIONS,
@@ -97,11 +106,14 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
         )
 
         # ── Budget ────────────────────────────────────────────────────────────
-        st.markdown(_sec_head(
-            _PRICE_SVG,
-            label="Price levels you&#8217;re comfortable with",
-            heading="Budget",
-        ), unsafe_allow_html=True)
+        st.markdown(
+            _sec_head(
+                _PRICE_SVG,
+                label="Price levels you&#8217;re comfortable with",
+                heading="Budget",
+            ),
+            unsafe_allow_html=True,
+        )
         price_levels = st.multiselect(
             "Price",
             options=[1, 2, 3, 4],
@@ -116,29 +128,37 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
         )
 
         # ── Preferences ───────────────────────────────────────────────────────
-        st.markdown(_sec_head(
-            _CHECK_SVG,
-            label="Preferences",
-            heading="How you like to dine",
-        ), unsafe_allow_html=True)
+        st.markdown(
+            _sec_head(
+                _CHECK_SVG,
+                label="Preferences",
+                heading="How you like to dine",
+            ),
+            unsafe_allow_html=True,
+        )
         col1, col2 = st.columns(2)
         with col1:
             takeout = st.toggle("Takeout available", value=True)
-            outdoor = st.toggle("Outdoor seating",   value=False)
+            outdoor = st.toggle("Outdoor seating", value=False)
         with col2:
             delivery = st.toggle("Delivery available", value=False)
-            kids     = st.toggle("Kid-friendly",       value=False)
+            kids = st.toggle("Kid-friendly", value=False)
 
         # ── Radius ────────────────────────────────────────────────────────────
-        st.markdown(_sec_head(
-            _RADIUS_SVG,
-            label="How far you&#8217;ll drive",
-            heading="Search radius",
-        ), unsafe_allow_html=True)
+        st.markdown(
+            _sec_head(
+                _RADIUS_SVG,
+                label="How far you&#8217;ll drive",
+                heading="Search radius",
+            ),
+            unsafe_allow_html=True,
+        )
         radius = st.slider(
             "Search radius (km)",
-            min_value=1.0, max_value=25.0,
-            value=float(default_radius), step=0.5,
+            min_value=1.0,
+            max_value=25.0,
+            value=float(default_radius),
+            step=0.5,
             label_visibility="collapsed",
         )
 
@@ -164,10 +184,14 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
         return None
 
     attributes: list[str] = []
-    if takeout:  attributes.append("takeout")
-    if delivery: attributes.append("delivery")
-    if outdoor:  attributes.append("outdoor")
-    if kids:     attributes.append("kids")
+    if takeout:
+        attributes.append("takeout")
+    if delivery:
+        attributes.append("delivery")
+    if outdoor:
+        attributes.append("outdoor")
+    if kids:
+        attributes.append("kids")
 
     profile = ColdStartProfile(
         cuisines=cuisines,

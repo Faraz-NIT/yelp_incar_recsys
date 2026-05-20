@@ -10,6 +10,7 @@ For predicting a (user, item) pair:
                           / sum_{j in N(i)} |sim(i, j)|
 where ``N(i)`` is the set of i's neighbours that user ``u`` has rated.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -54,7 +55,9 @@ def _mean_center_rows(matrix: sp.csr_matrix) -> tuple[sp.csr_matrix, np.ndarray]
     matrix = matrix.astype(np.float32).copy()
     row_nnz = np.diff(matrix.indptr)
     row_sums = np.asarray(matrix.sum(axis=1)).ravel()
-    means = np.where(row_nnz > 0, row_sums / np.maximum(row_nnz, 1), 0.0).astype(np.float32)
+    means = np.where(row_nnz > 0, row_sums / np.maximum(row_nnz, 1), 0.0).astype(
+        np.float32
+    )
     # Subtract each row's mean from its non-zero entries using repeat
     matrix.data -= means[np.repeat(np.arange(matrix.shape[0]), row_nnz)]
     return matrix, means
@@ -97,15 +100,11 @@ class ItemCFRecommender(BaseRecommender):
         for b, i in item_to_idx.items():
             self.idx_to_item[i] = b
         k = min(self.k + 1, self.centred_T_.shape[0])
-        self.nn_ = NearestNeighbors(
-            metric="cosine", algorithm="brute", n_neighbors=k
-        )
+        self.nn_ = NearestNeighbors(metric="cosine", algorithm="brute", n_neighbors=k)
         self.nn_.fit(self.centred_T_)
         return self
 
-    def _predict_for_user(
-        self, user_idx: int, candidate_idx: np.ndarray
-    ) -> np.ndarray:
+    def _predict_for_user(self, user_idx: int, candidate_idx: np.ndarray) -> np.ndarray:
         """Predict centred scores for ``user_idx`` over ``candidate_idx``."""
         assert self.nn_ is not None and self.centred_T_ is not None
         assert self.user_means_ is not None and self.matrix_ is not None
@@ -157,13 +156,13 @@ class ItemCFRecommender(BaseRecommender):
             return cand
         raw = self._predict_for_user(user_idx, cand_idx)
         cand["score"] = self.normalize_rating_scores(raw)
-        return cand.sort_values("score", ascending=False).head(top_n).reset_index(
-            drop=True
+        return (
+            cand.sort_values("score", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
         )
 
-    def score_pairs(
-        self, user_id: str | None, business_ids: list[str]
-    ) -> pd.Series:
+    def score_pairs(self, user_id: str | None, business_ids: list[str]) -> pd.Series:
         out = pd.Series(0.0, index=business_ids, dtype=np.float32)
         if user_id is None or user_id not in self.user_to_idx:
             return out
@@ -213,15 +212,11 @@ class UserCFRecommender(BaseRecommender):
         self.user_to_idx = user_to_idx
         self.item_to_idx = item_to_idx
         k = min(self.k + 1, self.centred_.shape[0])
-        self.nn_ = NearestNeighbors(
-            metric="cosine", algorithm="brute", n_neighbors=k
-        )
+        self.nn_ = NearestNeighbors(metric="cosine", algorithm="brute", n_neighbors=k)
         self.nn_.fit(self.centred_)
         return self
 
-    def _predict_for_user(
-        self, user_idx: int, candidate_idx: np.ndarray
-    ) -> np.ndarray:
+    def _predict_for_user(self, user_idx: int, candidate_idx: np.ndarray) -> np.ndarray:
         assert self.nn_ is not None and self.centred_ is not None
         assert self.matrix_ is not None and self.user_means_ is not None
         distances, neighbors = self.nn_.kneighbors(
@@ -264,11 +259,11 @@ class UserCFRecommender(BaseRecommender):
         if cand.empty:
             cand["score"] = []
             return cand
-        cand_idx = np.array(
-            [self.item_to_idx[b] for b in cand["business_id"]]
-        )
+        cand_idx = np.array([self.item_to_idx[b] for b in cand["business_id"]])
         raw = self._predict_for_user(user_idx, cand_idx)
         cand["score"] = self.normalize_rating_scores(raw)
-        return cand.sort_values("score", ascending=False).head(top_n).reset_index(
-            drop=True
+        return (
+            cand.sort_values("score", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
         )

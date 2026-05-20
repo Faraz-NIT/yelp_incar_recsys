@@ -14,6 +14,7 @@ Use a smaller MF model for a fast smoke test:
 
     python scripts/run_pipeline.py --mf-factors 16 --mf-epochs 5
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,11 +31,21 @@ from src.pipeline import run_full_pipeline  # noqa: E402
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Run the in-car restaurant recsys pipeline")
     p.add_argument("--cities", nargs="+", default=DEFAULT_CONFIG.cities)
-    p.add_argument("--min-user-reviews", type=int, default=DEFAULT_CONFIG.min_user_reviews)
-    p.add_argument("--min-business-reviews", type=int, default=DEFAULT_CONFIG.min_business_reviews)
-    p.add_argument("--sample-reviews", type=int, default=None,
-                   help="Cap on number of reviews loaded (None = all)")
-    p.add_argument("--sentiment-alpha", type=float, default=DEFAULT_CONFIG.sentiment_blend_alpha)
+    p.add_argument(
+        "--min-user-reviews", type=int, default=DEFAULT_CONFIG.min_user_reviews
+    )
+    p.add_argument(
+        "--min-business-reviews", type=int, default=DEFAULT_CONFIG.min_business_reviews
+    )
+    p.add_argument(
+        "--sample-reviews",
+        type=int,
+        default=None,
+        help="Cap on number of reviews loaded (None = all)",
+    )
+    p.add_argument(
+        "--sentiment-alpha", type=float, default=DEFAULT_CONFIG.sentiment_blend_alpha
+    )
     p.add_argument("--mf-factors", type=int, default=DEFAULT_CONFIG.mf_n_factors)
     p.add_argument("--mf-epochs", type=int, default=DEFAULT_CONFIG.mf_n_epochs)
     p.add_argument(
@@ -59,12 +70,14 @@ def main() -> None:
         mf_n_epochs=args.mf_epochs,
     )
     stages = tuple(
-        s for s in ("preprocess", "sentiment", "train", "evaluate") if s not in args.skip
+        s
+        for s in ("preprocess", "sentiment", "train", "evaluate")
+        if s not in args.skip
     )
 
     def cb(p: float, msg: str) -> None:
         bar = "█" * int(p * 30) + "░" * (30 - int(p * 30))
-        print(f"\r[{bar}] {p*100:5.1f}% {msg[:80]:<80}", end="", flush=True)
+        print(f"\r[{bar}] {p * 100:5.1f}% {msg[:80]:<80}", end="", flush=True)
 
     result = run_full_pipeline(config=config, stages=stages, progress_cb=cb)
     print()
