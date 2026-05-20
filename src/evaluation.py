@@ -148,13 +148,20 @@ def evaluate_ranking(
     relevance_threshold: float = 4.0,
     max_users: int | None = 500,
     rating_col: str = "rating",
+    n_neg_samples: int | None = 200,
+    rng_seed: int = 0,
 ) -> RankingMetrics:
-    """Top-K ranking metrics by holding out high-rated items per user."""
+    """Top-K ranking metrics by holding out high-rated items per user.
+
+    ``n_neg_samples``: if set, rank relevant items against this many random
+    negatives instead of all unseen businesses (much faster; None = full rank).
+    """
     if test.empty:
         return RankingMetrics(precision=float("nan"), recall=float("nan"),
                               ndcg=float("nan"), n_users=0, k=k)
-    all_biz_set = set(businesses["business_id"])
-    all_biz = businesses["business_id"].tolist()
+    all_biz_arr = businesses["business_id"].to_numpy()
+    all_biz_set = set(all_biz_arr)
+    rng = np.random.default_rng(rng_seed)
     # Pre-index train by user to avoid O(n_train) scan per user
     train_seen: dict[str, set[str]] = {
         uid: set(grp["business_id"])
@@ -173,11 +180,15 @@ def evaluate_ranking(
         )
         if not relevant:
             continue
-        # Don't recommend items the user already rated in training
         seen = train_seen.get(user_id, set())
-        cand_ids = list(all_biz_set - seen)
-        if not cand_ids:
+        neg_pool = list(all_biz_set - seen - relevant)
+        if not neg_pool:
             continue
+        if n_neg_samples is not None and len(neg_pool) > n_neg_samples:
+            neg_ids = rng.choice(neg_pool, size=n_neg_samples, replace=False).tolist()
+        else:
+            neg_ids = neg_pool
+        cand_ids = neg_ids + list(relevant)
         cand_df = pd.DataFrame({"business_id": cand_ids})
         recs = model.recommend(user_id, cand_df, top_n=k)
         recommended = recs["business_id"].tolist()
@@ -202,13 +213,15 @@ def evaluate_all(
     businesses: pd.DataFrame,
     k: int = 10,
     max_users: int | None = 500,
+    n_neg_samples: int | None = 200,
 ) -> pd.DataFrame:
     """Run every metric for every model and return one tidy DataFrame."""
     rows: list[dict] = []
     for name, model in models.items():
         err = evaluate_error(model, test)
         rank = evaluate_ranking(
-            model, train, test, businesses, k=k, max_users=max_users
+            model, train, test, businesses, k=k, max_users=max_users,
+            n_neg_samples=n_neg_samples,
         )
         row = {"model": name, **err.as_dict(), **rank.as_dict()}
         rows.append(row)

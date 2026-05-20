@@ -51,17 +51,13 @@ def _build_sparse_matrix(
 
 def _mean_center_rows(matrix: sp.csr_matrix) -> tuple[sp.csr_matrix, np.ndarray]:
     """Subtract each row's mean (over non-zero entries) and return both."""
-    matrix = matrix.tolil()
-    means = np.zeros(matrix.shape[0], dtype=np.float32)
-    for i in range(matrix.shape[0]):
-        row = matrix.rows[i]
-        data = matrix.data[i]
-        if not row:
-            continue
-        m = float(np.mean(data))
-        means[i] = m
-        matrix.data[i] = [v - m for v in data]
-    return matrix.tocsr(), means
+    matrix = matrix.astype(np.float32).copy()
+    row_nnz = np.diff(matrix.indptr)
+    row_sums = np.asarray(matrix.sum(axis=1)).ravel()
+    means = np.where(row_nnz > 0, row_sums / np.maximum(row_nnz, 1), 0.0).astype(np.float32)
+    # Subtract each row's mean from its non-zero entries using repeat
+    matrix.data -= means[np.repeat(np.arange(matrix.shape[0]), row_nnz)]
+    return matrix, means
 
 
 # ---------------------------------------------------------------------------

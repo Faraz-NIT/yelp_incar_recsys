@@ -63,7 +63,6 @@ _BASE_LAYOUT: dict = dict(
     plot_bgcolor="rgba(0,0,0,0)",
     paper_bgcolor="#ffffff",
     margin=dict(t=4, b=4, l=4, r=4),
-    showlegend=False,
 )
 
 _XAXIS_CLEAN = dict(showgrid=False, zeroline=False,
@@ -191,6 +190,7 @@ with r1c1:
                     hovertemplate="%{y:,}<extra></extra>",
                 ))
                 fig_ts.update_layout(**_BASE_LAYOUT, height=230,
+                    showlegend=False,
                     xaxis={**_XAXIS_CLEAN, "title": "Stars"},
                     yaxis=_YAXIS_GRID,
                 )
@@ -274,6 +274,7 @@ with r2c1:
             ))
             fig_cuis.update_layout(
                 **_BASE_LAYOUT, height=270,
+                showlegend=False,
                 xaxis=dict(showgrid=False, zeroline=False, visible=False),
                 yaxis=dict(showgrid=False, zeroline=False,
                            tickfont=dict(size=11, color="#3a3a37", family="DM Sans"),
@@ -308,6 +309,7 @@ with r2c2:
             ))
             fig_sent.update_layout(
                 **_BASE_LAYOUT, height=270,
+                showlegend=False,
                 xaxis={**_XAXIS_CLEAN, "title": "Stars"},
                 yaxis={**_YAXIS_GRID,
                        "zeroline": True, "zerolinecolor": "rgba(0,0,0,0.10)"},
@@ -329,6 +331,7 @@ with r2c2:
             ))
             fig_stars.update_layout(
                 **_BASE_LAYOUT, height=270,
+                showlegend=False,
                 xaxis={**_XAXIS_CLEAN, "title": "Stars"},
                 yaxis=_YAXIS_GRID,
                 bargap=0.28,
@@ -524,6 +527,7 @@ if eval_path.exists():
             ))
             fig_heat.update_layout(
                 **_BASE_LAYOUT,
+                showlegend=False,
                 height=max(200, 60 * len(heat)),
                 xaxis=dict(side="top",
                            tickfont=dict(size=10, color="#3a3a37", family="JetBrains Mono")),
@@ -575,6 +579,7 @@ if interactions is not None and not interactions.empty:
             ))
             fig_act.update_layout(
                 **_BASE_LAYOUT, height=240,
+                showlegend=False,
                 xaxis={**_XAXIS_CLEAN, "title": "Ratings"},
                 yaxis=_YAXIS_GRID,
                 bargap=0.25,
