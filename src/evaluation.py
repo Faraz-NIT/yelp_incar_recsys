@@ -27,23 +27,36 @@ def train_test_split_interactions(
     interactions: pd.DataFrame,
     test_size: float = 0.2,
     min_user_interactions: int = 4,
+    holdout_per_user: int | None = 1,
     random_state: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Per-user holdout split.
 
     Users with fewer than ``min_user_interactions`` ratings are kept entirely
-    in the training set so CF can still learn them.
+    in the training set so CF can still learn them. By default, exactly one
+    interaction is held out per eligible user, matching the Top-N evaluation
+    setup described in the project report. Set ``holdout_per_user=None`` to
+    fall back to a percentage split using ``test_size``.
     """
+    if holdout_per_user is not None and holdout_per_user < 1:
+        raise ValueError("holdout_per_user must be >= 1 or None.")
+    if holdout_per_user is None and not 0 < test_size < 1:
+        raise ValueError("test_size must be between 0 and 1 for percentage splits.")
+
     rng = np.random.default_rng(random_state)
     train_rows: list[pd.DataFrame] = []
     test_rows: list[pd.DataFrame] = []
     for _, group in interactions.groupby("user_id"):
         n = len(group)
-        if n < min_user_interactions:
+        if n < min_user_interactions or n < 2:
             train_rows.append(group)
             continue
         idx = rng.permutation(n)
-        cutoff = max(1, int(n * test_size))
+        if holdout_per_user is None:
+            cutoff = max(1, int(n * test_size))
+        else:
+            cutoff = holdout_per_user
+        cutoff = min(cutoff, n - 1)
         test_rows.append(group.iloc[idx[:cutoff]])
         train_rows.append(group.iloc[idx[cutoff:]])
     train = pd.concat(train_rows, ignore_index=True)
