@@ -1062,6 +1062,10 @@ details summary p {
   font-size: 10.5px; letter-spacing: .18em;
   text-transform: uppercase; color: rgba(255,255,255,.45);
 }
+.disc-nd-driver {
+  font-size: 1.1rem; font-weight: 600; color: #fff;
+  margin-top: 2px; margin-bottom: -4px;
+}
 .disc-nd-route {
   font-family: var(--serif) !important;
   font-size: 1.4rem; font-weight: 400; color: #fff;

@@ -652,12 +652,45 @@ with col_r:
             unsafe_allow_html=True,
         )
 
+    # ── Resolve driver name ────────────────────────────────────────────────
+    if _wiz_mode == "new" and profile is not None and profile.name:
+        _driver_name = profile.name
+    elif _wiz_mode == "returning" and "_user_row" in dir() and _user_row is not None:
+        _driver_name = _user_row["name"]
+    else:
+        _driver_name = ""
+
+    # ── New-user profile card ──────────────────────────────────────────────
+    if _wiz_mode == "new" and profile is not None:
+        _new_name = profile.name or "Guest"
+        _new_avatar = _new_name[0].upper()
+        st.markdown(
+            f"""
+            <div class="disc-user-card">
+              <div class="disc-user-hdr">
+                <div class="disc-user-av">{_new_avatar}</div>
+                <div>
+                  <div class="disc-user-nm">{_new_name}</div>
+                  <div class="disc-user-since">New user</div>
+                </div>
+                <span class="disc-user-badge"
+                  style="background:#94a3b822;color:#94a3b8">New</span>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     city_label = src_label or f"{lat:.3f}, {lon:.3f}"
     radius_disp = f"{filters.radius_km:.0f}"
+    _driver_line = (
+        f'<div class="disc-nd-driver">{_driver_name}</div>' if _driver_name else ""
+    )
     st.markdown(
         f"""
         <div class="disc-nd-card">
           <div class="disc-nd-label">Now Driving</div>
+          {_driver_line}
           <div class="disc-nd-route">
             {city_label}
             <span class="disc-nd-arrow">&#8594;</span>

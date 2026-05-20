@@ -41,6 +41,7 @@ class ColdStartProfile:
     attributes: list[str]
     price_levels: list[int]
     radius_km: float
+    name: str = ""
 
 
 def classify_user(

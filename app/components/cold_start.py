@@ -86,6 +86,13 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
 
     with st.form("cold_start_form"):
 
+        # ── Name ──────────────────────────────────────────────────────────────
+        name = st.text_input(
+            "Your name",
+            placeholder="What should we call you?",
+            max_chars=40,
+        )
+
         # ── Cuisines ──────────────────────────────────────────────────────────
         st.markdown(
             _sec_head(
@@ -198,6 +205,7 @@ def render_onboarding(default_radius: float = 5.0) -> ColdStartProfile | None:
         attributes=attributes,
         price_levels=price_levels,
         radius_km=radius,
+        name=name.strip(),
     )
     st.session_state["cold_start_profile"] = profile
     return profile
