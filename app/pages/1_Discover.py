@@ -171,6 +171,13 @@ top_users = (
     else []
 )
 
+_users_df = data.get("users")
+_user_name: dict[str, str] = (
+    _users_df.set_index("user_id")["name"].to_dict()
+    if _users_df is not None and "name" in _users_df.columns
+    else {}
+)
+
 _wiz_phase = st.session_state.get("wizard_phase", "choose")
 _wiz_mode = st.session_state.get("wizard_mode", "returning")
 
@@ -289,7 +296,10 @@ with st.container(border=True):
                 st.selectbox(
                     "Pick a user",
                     options=top_users,
-                    format_func=lambda u: f"{u[:8]}… ({int((interactions['user_id'] == u).sum())} ratings)",
+                    format_func=lambda u: (
+                        f"{_user_name.get(u, u[:8] + '…')} "
+                        f"({int((interactions['user_id'] == u).sum())} ratings)"
+                    ),
                     label_visibility="collapsed",
                     key="selected_user_id",
                 )
@@ -563,8 +573,85 @@ with col_c:
                 use_container_width=True,
             )
 
-# ── Right: now-driving card ────────────────────────────────────────────────
+# ── Right: user profile + now-driving card ────────────────────────────────
 with col_r:
+    # ── User profile card (returning users only) ───────────────────────────
+    if _wiz_mode == "returning" and selected_user_id:
+        _users_df = data.get("users")
+        _user_row = None
+        if _users_df is not None and not _users_df.empty:
+            _match = _users_df[_users_df["user_id"] == selected_user_id]
+            if not _match.empty:
+                _user_row = _match.iloc[0]
+
+        _u_ix = (
+            interactions[interactions["user_id"] == selected_user_id]
+            if not interactions.empty
+            else pd.DataFrame()
+        )
+        _avg_raw = f"{_u_ix['raw_stars'].mean():.1f}★" if not _u_ix.empty else "—"
+        _avg_sent = f"{_u_ix['sentiment'].mean():.2f}" if not _u_ix.empty else "—"
+
+        _name = (
+            _user_row["name"] if _user_row is not None else f"{selected_user_id[:8]}…"
+        )
+        _since_year = (
+            str(_user_row["yelping_since"])[:4] if _user_row is not None else "—"
+        )
+        _total_reviews = (
+            f"{int(_user_row['review_count']):,}" if _user_row is not None else "—"
+        )
+        _avg_stars_all = (
+            f"{float(_user_row['average_stars']):.1f}★" if _user_row is not None else "—"
+        )
+        _avatar_letter = _name[0].upper()
+        _regime_color = {"established": "#22c55e", "light": "#f59e0b", "new": "#94a3b8"}.get(
+            regime, "#94a3b8"
+        )
+
+        st.markdown(
+            f"""
+            <style>
+            .disc-user-card{{background:var(--surface);border:1px solid var(--border);
+              border-radius:12px;padding:14px 16px;margin-bottom:12px}}
+            .disc-user-hdr{{display:flex;align-items:center;gap:10px;margin-bottom:12px}}
+            .disc-user-av{{width:36px;height:36px;border-radius:50%;
+              background:var(--accent);color:#000;font-weight:700;font-size:15px;
+              display:flex;align-items:center;justify-content:center;flex-shrink:0}}
+            .disc-user-nm{{font-weight:600;font-size:14px;line-height:1.2}}
+            .disc-user-since{{font-size:11px;color:var(--muted)}}
+            .disc-user-badge{{margin-left:auto;font-size:10px;font-weight:600;
+              padding:2px 7px;border-radius:20px;white-space:nowrap}}
+            .disc-user-grid{{display:grid;grid-template-columns:1fr 1fr;gap:8px}}
+            .disc-user-stat{{background:var(--bg);border-radius:8px;padding:8px 10px;text-align:center}}
+            .disc-user-stat b{{display:block;font-size:15px;font-weight:700}}
+            .disc-user-stat small{{font-size:10px;color:var(--muted);text-transform:uppercase;
+              letter-spacing:.04em}}
+            </style>
+            <div class="disc-user-card">
+              <div class="disc-user-hdr">
+                <div class="disc-user-av">{_avatar_letter}</div>
+                <div>
+                  <div class="disc-user-nm">{_name}</div>
+                  <div class="disc-user-since">Since {_since_year}</div>
+                </div>
+                <span class="disc-user-badge"
+                  style="background:{_regime_color}22;color:{_regime_color}">
+                  {regime.capitalize()}
+                </span>
+              </div>
+              <div class="disc-user-grid">
+                <div class="disc-user-stat"><b>{_total_reviews}</b><small>Yelp reviews</small></div>
+                <div class="disc-user-stat"><b>{n_history}</b><small>In system</small></div>
+                <div class="disc-user-stat"><b>{_avg_stars_all}</b><small>Avg rating</small></div>
+                <div class="disc-user-stat"><b>{_avg_raw}</b><small>Here</small></div>
+                <div class="disc-user-stat"><b>{_avg_sent}</b><small>Sentiment</small></div>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     city_label = src_label or f"{lat:.3f}, {lon:.3f}"
     radius_disp = f"{filters.radius_km:.0f}"
     st.markdown(
