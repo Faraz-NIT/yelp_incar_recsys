@@ -10,6 +10,7 @@ from __future__ import annotations
 import shutil
 import sys
 import traceback
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -68,6 +69,57 @@ with status_cols[2]:
             "Raw Yelp files: none — drop the JSON files into data/raw/ "
             "or generate sample data via the CLI script.",
         )
+
+# ---------------------------------------------------------------------------
+# Raw data download (shown only when no raw files are present)
+# ---------------------------------------------------------------------------
+_GDRIVE_FILE_ID = "1lUbGgnj1Ljs_9aZsAshxxGkFCfRp3DAb"
+
+if not raw_files:
+    st.markdown("---")
+    st.markdown("### 0. Download raw data")
+    st.info(
+        "No raw Yelp JSON files found in `data/raw/`. "
+        "Click below to download and extract the dataset directly from Google Drive."
+    )
+    if st.button("⬇ Download & extract raw data", type="primary", use_container_width=True):
+        try:
+            import gdown  # lazy import — only needed here
+        except ImportError:
+            st.error("`gdown` is not installed. Run `pip install gdown>=4.7` and restart.")
+            st.stop()
+
+        # Save zip alongside the destination so both operations stay on the same drive.
+        tmp_path = RAW_DIR / "_download_tmp.zip"
+        try:
+            with st.spinner("Downloading zip from Google Drive…"):
+                gdown.download(id=_GDRIVE_FILE_ID, output=str(tmp_path), quiet=True)
+
+            with st.spinner("Extracting files into data/raw/…"):
+                with zipfile.ZipFile(tmp_path, "r") as zf:
+                    members = [m for m in zf.infolist() if not m.is_dir()]
+                    # Strip a single common root folder if the zip has one
+                    # (e.g. "yelp_dataset/photos/x.jpg" → "photos/x.jpg")
+                    parts = [Path(m.filename).parts for m in members]
+                    roots = {p[0] for p in parts if len(p) > 1}
+                    strip_root = len(roots) == 1 and all(len(p) > 1 for p in parts)
+                    for member in members:
+                        rel = Path(member.filename)
+                        if strip_root:
+                            rel = rel.relative_to(rel.parts[0])
+                        target = RAW_DIR / rel
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        with zf.open(member) as src, open(target, "wb") as dst:
+                            shutil.copyfileobj(src, dst)
+
+            st.success("Extraction complete — raw files are ready.")
+            st.rerun()
+        except Exception as exc:
+            st.error(f"Download/extraction failed: {exc}")
+            with st.expander("Traceback"):
+                st.code(traceback.format_exc(), language="python")
+        finally:
+            tmp_path.unlink(missing_ok=True)
 
 # ---------------------------------------------------------------------------
 # Pipeline configuration form

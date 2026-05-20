@@ -12,6 +12,7 @@ streamlit-folium>=0.18
 streamlit-js-eval>=0.1.7
 plotly>=5.20
 groq>=0.9
+gdown>=4.7
 
 # Dev
 black
