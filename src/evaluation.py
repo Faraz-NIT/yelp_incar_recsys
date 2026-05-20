@@ -3,6 +3,8 @@
 - ``rmse`` / ``mae``: prediction error on held-out (user, item, rating) triples.
 - ``precision_at_k`` / ``recall_at_k`` / ``ndcg_at_k``: ranking quality at the
   top-K for each user, treating ratings >= ``relevance_threshold`` as relevant.
+- ``coverage_at_k``: share of the restaurant catalogue surfaced at least once
+  across evaluated users' Top-K lists.
 
 Use ``train_test_split_interactions`` for a reproducible per-user holdout split
 that guarantees every test user also appears in training (so user-CF/MF can
@@ -27,23 +29,36 @@ def train_test_split_interactions(
     interactions: pd.DataFrame,
     test_size: float = 0.2,
     min_user_interactions: int = 4,
+    holdout_per_user: int | None = 1,
     random_state: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Per-user holdout split.
 
     Users with fewer than ``min_user_interactions`` ratings are kept entirely
-    in the training set so CF can still learn them.
+    in the training set so CF can still learn them. By default, exactly one
+    interaction is held out per eligible user, matching the Top-N evaluation
+    setup described in the project report. Set ``holdout_per_user=None`` to
+    fall back to a percentage split using ``test_size``.
     """
+    if holdout_per_user is not None and holdout_per_user < 1:
+        raise ValueError("holdout_per_user must be >= 1 or None.")
+    if holdout_per_user is None and not 0 < test_size < 1:
+        raise ValueError("test_size must be between 0 and 1 for percentage splits.")
+
     rng = np.random.default_rng(random_state)
     train_rows: list[pd.DataFrame] = []
     test_rows: list[pd.DataFrame] = []
     for _, group in interactions.groupby("user_id"):
         n = len(group)
-        if n < min_user_interactions:
+        if n < min_user_interactions or n < 2:
             train_rows.append(group)
             continue
         idx = rng.permutation(n)
-        cutoff = max(1, int(n * test_size))
+        if holdout_per_user is None:
+            cutoff = max(1, int(n * test_size))
+        else:
+            cutoff = holdout_per_user
+        cutoff = min(cutoff, n - 1)
         test_rows.append(group.iloc[idx[:cutoff]])
         train_rows.append(group.iloc[idx[cutoff:]])
     train = pd.concat(train_rows, ignore_index=True)
@@ -122,11 +137,19 @@ def ndcg_at_k(recommended: list[str], relevant: set[str], k: int) -> float:
     return dcg / idcg if idcg > 0 else 0.0
 
 
+def catalog_coverage_at_k(recommended: set[str], catalog_size: int) -> float:
+    """Share of the catalogue that appears in at least one Top-K list."""
+    if catalog_size <= 0:
+        return 0.0
+    return len(recommended) / catalog_size
+
+
 @dataclass
 class RankingMetrics:
     precision: float
     recall: float
     ndcg: float
+    coverage: float
     n_users: int
     k: int
 
@@ -135,6 +158,7 @@ class RankingMetrics:
             f"precision@{self.k}": self.precision,
             f"recall@{self.k}": self.recall,
             f"ndcg@{self.k}": self.ndcg,
+            f"coverage@{self.k}": self.coverage,
             "n_users_evaluated": self.n_users,
         }
 
@@ -158,9 +182,11 @@ def evaluate_ranking(
     """
     if test.empty:
         return RankingMetrics(precision=float("nan"), recall=float("nan"),
-                              ndcg=float("nan"), n_users=0, k=k)
+                              ndcg=float("nan"), coverage=float("nan"),
+                              n_users=0, k=k)
     all_biz_arr = businesses["business_id"].to_numpy()
     all_biz_set = set(all_biz_arr)
+    catalog_size = len(all_biz_set)
     rng = np.random.default_rng(rng_seed)
     # Pre-index train by user to avoid O(n_train) scan per user
     train_seen: dict[str, set[str]] = {
@@ -168,6 +194,7 @@ def evaluate_ranking(
         for uid, grp in train.groupby("user_id")
     }
     precisions, recalls, ndcgs = [], [], []
+    recommended_catalog: set[str] = set()
     users_evaluated = 0
 
     user_groups: Iterable = test.groupby("user_id")
@@ -192,6 +219,7 @@ def evaluate_ranking(
         cand_df = pd.DataFrame({"business_id": cand_ids})
         recs = model.recommend(user_id, cand_df, top_n=k)
         recommended = recs["business_id"].tolist()
+        recommended_catalog.update(recommended[:k])
         precisions.append(precision_at_k(recommended, relevant, k))
         recalls.append(recall_at_k(recommended, relevant, k))
         ndcgs.append(ndcg_at_k(recommended, relevant, k))
@@ -201,6 +229,7 @@ def evaluate_ranking(
         precision=float(np.mean(precisions)) if precisions else 0.0,
         recall=float(np.mean(recalls)) if recalls else 0.0,
         ndcg=float(np.mean(ndcgs)) if ndcgs else 0.0,
+        coverage=catalog_coverage_at_k(recommended_catalog, catalog_size),
         n_users=users_evaluated,
         k=k,
     )
