@@ -1334,6 +1334,7 @@ def render_topnav(current_page: str = "app") -> None:
         ("discover", "Discover", "./Discover"),
         ("admin", "Admin", "./Admin"),
         ("analytics", "Analytics", "./Analytics"),
+        ("process", "Process", "./Process"),
     ]
 
     def _link(page_id: str, label: str, href: str) -> str:
@@ -1363,8 +1364,6 @@ def render_topnav(current_page: str = "app") -> None:
 def render_dock(
     current_page: str = "app",
     user_id: str | None = None,
-    model_name: str = "Hybrid v2.4",
-    region: str = "EU · London",
 ) -> None:
     """Render the PITSTOP bottom dock navigation."""
 
@@ -1411,6 +1410,12 @@ def render_dock(
             "./Analytics",
             '<path d="M4 20V10M10 20V4M16 20V13M22 20H2"/>',
             "Analytics",
+        )
+        + _tab(
+            "process",
+            "./Process",
+            '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>',
+            "Process",
         )
     )
 
@@ -1465,10 +1470,7 @@ def render_dock(
             <div class="ps-info">
               <span class="pip"></span>
               <span class="k">Model</span>
-              <span class="v">{model_name}</span>
-              <span class="pip am"></span>
-              <span class="k">Region</span>
-              <span class="v">{region}</span>
+              <span class="v">Hybrid</span>
             </div>
           </div>
 
