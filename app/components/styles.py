@@ -453,13 +453,14 @@ a.nav-card { display: block; text-decoration: none; color: inherit; }
   font-weight: 400 !important; margin-bottom: .5rem;
 }
 .rec-card-why {
-  color: var(--muted); font-size: .9rem;
+  color: var(--ink-2, #3a3a37); font-size: .88rem;
   font-weight: 400 !important; font-style: italic;
-  line-height: 1.6; margin-top: .5rem;
-  padding: .6rem .9rem;
-  background: var(--accent-soft);
-  border-left: 2px solid var(--accent);
+  line-height: 1.6; margin-top: .6rem;
+  padding: .55rem .9rem .55rem 1rem;
+  background: rgba(255,122,26,.10);
+  border-left: 3px solid var(--accent);
   border-radius: 0 6px 6px 0;
+  display: block;
 }
 
 /* ---------- Tags ---------- */

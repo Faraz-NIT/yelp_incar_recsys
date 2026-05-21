@@ -371,7 +371,25 @@ _MODEL_LABELS: dict[str, str] = {
     "matrix_fact": "Matrix Factorization",
 }
 
-# Read model + llm toggle from session state (set by widgets rendered below)
+# ---------------------------------------------------------------------------
+# Controls rendered BEFORE scoring so values are in session_state this run
+# ---------------------------------------------------------------------------
+_ctrl1, _ctrl2, _ = st.columns([3, 2, 3])
+with _ctrl1:
+    st.selectbox(
+        "Model",
+        options=list(_MODEL_LABELS.keys()),
+        format_func=lambda k: _MODEL_LABELS[k],
+        key="selected_model_key",
+        label_visibility="collapsed",
+    )
+with _ctrl2:
+    st.checkbox(
+        "AI 'why' text",
+        key="_disc_use_llm",
+        help="Asks Groq to generate a one-line reason for each recommendation.",
+    )
+
 _sel_model_key: str = st.session_state.get("selected_model_key", "hybrid")
 _use_llm: bool = st.session_state.get("_disc_use_llm", False)
 
@@ -503,23 +521,6 @@ with col_c:
         """,
         unsafe_allow_html=True,
     )
-
-    _sm1, _sm2, _ = st.columns([3, 2, 1])
-    with _sm1:
-        st.selectbox(
-            "Model",
-            options=list(_MODEL_LABELS.keys()),
-            format_func=lambda k: _MODEL_LABELS[k],
-            key="selected_model_key",
-            label_visibility="collapsed",
-        )
-    with _sm2:
-        st.checkbox(
-            "Claude 'why' text",
-            value=False,
-            key="_disc_use_llm",
-            help="If GROQ_API_KEY is set, asks Claude for a one-line rationale.",
-        )
 
     if cand.empty:
         st.warning(

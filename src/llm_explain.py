@@ -65,14 +65,31 @@ def template_explanation(row: pd.Series, user_cuisines: list[str] | None) -> str
 _client: "groq_sdk.Groq | None" = None
 
 
+def _get_api_key() -> str | None:
+    """Read GROQ_API_KEY from OS env or Streamlit secrets (whichever is set)."""
+    key = os.getenv("GROQ_API_KEY")
+    if key:
+        return key
+    try:
+        import streamlit as st
+        return st.secrets.get("GROQ_API_KEY")
+    except Exception:
+        return None
+
+
 def _get_client():
     global _client
     if not _HAS_GROQ:
+        logger.warning("groq package not installed — pip install groq")
         return None
     if _client is not None:
         return _client
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = _get_api_key()
     if not api_key:
+        logger.warning(
+            "GROQ_API_KEY not found. Set it in your OS environment or "
+            "in .streamlit/secrets.toml as GROQ_API_KEY = \"gsk_...\""
+        )
         return None
     try:
         _client = groq_sdk.Groq(api_key=api_key)
